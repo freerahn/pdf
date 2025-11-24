@@ -1,0 +1,23 @@
+{
+  "name": "pdf-editor",
+  "version": "1.0.0",
+  "description": "웹 기반 PDF 편집 도구 - PDF 분할, 텍스트 편집, 페이지 삭제",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8080 -o",
+    "dev": "npx http-server -p 8080 -o"
+  },
+  "keywords": [
+    "pdf",
+    "editor",
+    "split",
+    "edit",
+    "delete"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
+

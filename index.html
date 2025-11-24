@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 편집 도구</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 PDF 편집 도구</h1>
+            <p>PDF 파일을 업로드하고 분할, 편집, 페이지 삭제를 수행하세요</p>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="upload-section">
+                    <h2>파일 업로드</h2>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="pdfInput" accept=".pdf" />
+                        <label for="pdfInput" class="file-label">
+                            <span class="upload-icon">📁</span>
+                            <span>PDF 파일 선택</span>
+                        </label>
+                    </div>
+                    <div id="fileInfo" class="file-info"></div>
+                </div>
+
+                <div class="tools-section">
+                    <h2>편집 도구</h2>
+                    
+                    <div class="tool-group">
+                        <h3>📑 페이지 순서 변경</h3>
+                        <div class="page-controls">
+                            <div class="page-info">
+                                <span>총 페이지: <strong id="totalPages">0</strong></span>
+                            </div>
+                            <div class="page-list" id="pageList"></div>
+                            <button id="applyPageOrderBtn" class="btn btn-primary" style="margin-top: 10px; display: none;">적용</button>
+                        </div>
+                    </div>
+
+                    <div class="tool-group">
+                        <h3>🖼️ 이미지로 PDF 만들기</h3>
+                        <button id="imageToPdfBtn" class="btn btn-primary">이미지로 PDF 만들기</button>
+                    </div>
+
+                    <div class="tool-group">
+                        <h3>🔗 PDF 합치기</h3>
+                        <button id="mergeBtn" class="btn btn-primary">PDF 합치기</button>
+                    </div>
+
+                    <div class="tool-group">
+                        <h3>✂️ PDF 분할</h3>
+                        <div class="split-controls">
+                            <input type="number" id="splitFrom" placeholder="시작 페이지" min="1" />
+                            <span>~</span>
+                            <input type="number" id="splitTo" placeholder="끝 페이지" min="1" />
+                            <button id="splitBtn" class="btn btn-primary">분할 실행</button>
+                        </div>
+                    </div>
+
+                    <div class="tool-group">
+                        <h3>🗑️ 페이지 삭제</h3>
+                        <div class="delete-controls">
+                            <input type="number" id="deletePage" placeholder="삭제할 페이지 번호" min="1" />
+                            <button id="deleteBtn" class="btn btn-danger">페이지 삭제</button>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="downloadBtn" class="btn btn-success" disabled>💾 PDF 다운로드</button>
+                        <button id="downloadJpgBtn" class="btn btn-success" disabled>🖼️ JPG로 다운로드</button>
+                        <button id="downloadPptBtn" class="btn btn-success" disabled>📊 PPT로 다운로드</button>
+                        <button id="resetBtn" class="btn btn-secondary">🔄 초기화</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <h2>PDF 미리보기</h2>
+                <div id="pdfPreview" class="pdf-preview">
+                    <div class="empty-state">
+                        <p>📄 PDF 파일을 업로드하세요</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지로 PDF 만들기 모달 -->
+    <div id="imageToPdfModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🖼️ 이미지로 PDF 만들기</h2>
+                <button class="modal-close" id="closeImageToPdfModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="image-to-pdf-controls">
+                    <div class="input-group">
+                        <label for="imageFiles">이미지 파일 선택 (여러 개 선택 가능):</label>
+                        <input type="file" id="imageFiles" accept="image/*" multiple />
+                        <div id="imageFilesInfo" class="file-info-small"></div>
+                        <div id="imagePreviewList" class="image-preview-list"></div>
+                    </div>
+                    <div class="image-to-pdf-buttons">
+                        <button id="uploadImagesBtn" class="btn btn-success">업로드</button>
+                        <button id="cancelImageToPdfBtn" class="btn btn-secondary">취소</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF 합치기 모달 -->
+    <div id="mergeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔗 PDF 합치기</h2>
+                <button class="modal-close" id="closeMergeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="merge-controls">
+                    <div class="input-group">
+                        <label for="mergeFile1">첫 번째 PDF 파일:</label>
+                        <input type="file" id="mergeFile1" accept=".pdf" />
+                        <div id="mergeFile1Info" class="file-info-small"></div>
+                    </div>
+                    <div class="input-group">
+                        <label for="mergeFile2">두 번째 PDF 파일:</label>
+                        <input type="file" id="mergeFile2" accept=".pdf" />
+                        <div id="mergeFile2Info" class="file-info-small"></div>
+                    </div>
+                    <div class="merge-buttons">
+                        <button id="executeMergeBtn" class="btn btn-success">합치기</button>
+                        <button id="cancelMergeBtn" class="btn btn-secondary">취소</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+
