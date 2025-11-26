@@ -25,6 +25,7 @@ header {
     color: white;
     padding: 30px;
     text-align: center;
+    position: relative;
 }
 
 header h1 {
@@ -35,6 +36,28 @@ header h1 {
 header p {
     font-size: 1.1em;
     opacity: 0.9;
+}
+
+.help-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.help-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .main-content {
@@ -532,6 +555,108 @@ input[type="text"]:focus {
 
 .image-to-pdf-buttons .btn {
     flex: 1;
+}
+
+/* PDF 자르기 모달 */
+.split-pdf-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.split-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.split-options label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.split-options label:hover {
+    background-color: #e9ecef;
+}
+
+.split-options input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.split-pdf-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.split-pdf-buttons .btn {
+    flex: 1;
+}
+
+/* 크롭 선택 영역 */
+.crop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    z-index: 5;
+}
+
+.crop-selection-box {
+    position: absolute;
+    border: 2px dashed #667eea;
+    background-color: rgba(102, 126, 234, 0.1);
+    pointer-events: none;
+    z-index: 6;
+}
+
+.help-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.help-section:last-child {
+    border-bottom: none;
+}
+
+.help-section h3 {
+    color: #667eea;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+.help-section p {
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+.help-section ul {
+    margin-left: 20px;
+    margin-top: 8px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.help-section li {
+    margin-bottom: 5px;
+}
+
+.help-section strong {
+    color: #333;
 }
 
 @media (max-width: 1024px) {

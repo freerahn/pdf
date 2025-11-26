@@ -15,6 +15,9 @@ window.addEventListener('load', () => {
 let currentPdfDoc = null;
 let currentPdfBytes = null;
 let pdfPages = [];
+let isCropMode = false;
+let cropSelection = null; // { x, y, width, height, startX, startY }
+let cropStartPos = null;
 
 // currentPdfBytes를 안전하게 저장하는 함수
 function savePdfBytes(bytes) {
@@ -38,9 +41,19 @@ const splitTo = document.getElementById('splitTo');
 const splitBtn = document.getElementById('splitBtn');
 const deletePage = document.getElementById('deletePage');
 const deleteBtn = document.getElementById('deleteBtn');
+const splitPdfBtn = document.getElementById('splitPdfBtn');
+const splitPdfModal = document.getElementById('splitPdfModal');
+const closeSplitPdfModal = document.getElementById('closeSplitPdfModal');
+const executeSplitPdfBtn = document.getElementById('executeSplitPdfBtn');
+const cancelSplitPdfBtn = document.getElementById('cancelSplitPdfBtn');
+const rotatePdfBtn = document.getElementById('rotatePdfBtn');
+const rotatePdfModal = document.getElementById('rotatePdfModal');
+const closeRotatePdfModal = document.getElementById('closeRotatePdfModal');
+const executeRotatePdfBtn = document.getElementById('executeRotatePdfBtn');
+const cancelRotatePdfBtn = document.getElementById('cancelRotatePdfBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 const downloadJpgBtn = document.getElementById('downloadJpgBtn');
-const downloadPptBtn = document.getElementById('downloadPptBtn');
+const downloadTextBtn = document.getElementById('downloadTextBtn');
 const applyPageOrderBtn = document.getElementById('applyPageOrderBtn');
 const imageToPdfBtn = document.getElementById('imageToPdfBtn');
 const imageToPdfModal = document.getElementById('imageToPdfModal');
@@ -60,9 +73,15 @@ const mergeFile2Info = document.getElementById('mergeFile2Info');
 const executeMergeBtn = document.getElementById('executeMergeBtn');
 const cancelMergeBtn = document.getElementById('cancelMergeBtn');
 const resetBtn = document.getElementById('resetBtn');
+const helpBtn = document.getElementById('helpBtn');
+const helpModal = document.getElementById('helpModal');
+const closeHelpModal = document.getElementById('closeHelpModal');
 
 // PDF 파일 업로드
-pdfInput.addEventListener('change', async (e) => {
+if (!pdfInput) {
+    console.error('pdfInput 요소를 찾을 수 없습니다.');
+} else {
+    pdfInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -85,7 +104,7 @@ pdfInput.addEventListener('change', async (e) => {
     deletePage.value = '';
     downloadBtn.disabled = true;
     downloadJpgBtn.disabled = true;
-    downloadPptBtn.disabled = true;
+    downloadTextBtn.disabled = true;
     applyPageOrderBtn.style.display = 'none';
 
     fileInfo.innerHTML = `
@@ -129,7 +148,7 @@ pdfInput.addEventListener('change', async (e) => {
 
         downloadBtn.disabled = false;
         downloadJpgBtn.disabled = false;
-        downloadPptBtn.disabled = false;
+        downloadTextBtn.disabled = false;
         
         // currentPdfBytes가 변경되지 않았는지 확인
         console.log('PDF 로드 완료, 페이지 수:', numPages);
@@ -146,7 +165,8 @@ pdfInput.addEventListener('change', async (e) => {
         console.error('PDF 로드 오류:', error);
         alert('PDF 파일을 로드하는 중 오류가 발생했습니다.');
     }
-});
+    });
+}
 
 // 페이지 목록 업데이트
 function updatePageList(numPages) {
@@ -366,6 +386,84 @@ async function renderPdfPreview() {
 
         pageDiv.appendChild(canvas);
 
+        // 크롭 모드일 때 선택 영역 오버레이 추가
+        if (isCropMode) {
+            const overlay = document.createElement('div');
+            overlay.className = 'crop-overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.cursor = 'crosshair';
+            overlay.style.zIndex = '5';
+            
+            let isDragging = false;
+            let startX = 0;
+            let startY = 0;
+            let selectionBox = null;
+            
+            overlay.addEventListener('mousedown', (e) => {
+                if (!isCropMode) return;
+                isDragging = true;
+                const rect = canvas.getBoundingClientRect();
+                startX = e.clientX - rect.left;
+                startY = e.clientY - rect.top;
+                cropStartPos = { x: startX, y: startY };
+                
+                // 기존 선택 박스 제거
+                if (selectionBox) {
+                    selectionBox.remove();
+                }
+                
+                // 새 선택 박스 생성
+                selectionBox = document.createElement('div');
+                selectionBox.className = 'crop-selection-box';
+                selectionBox.style.position = 'absolute';
+                selectionBox.style.border = '2px dashed #667eea';
+                selectionBox.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
+                selectionBox.style.pointerEvents = 'none';
+                pageDiv.appendChild(selectionBox);
+            });
+            
+            overlay.addEventListener('mousemove', (e) => {
+                if (!isDragging || !isCropMode) return;
+                const rect = canvas.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+                
+                const x = Math.min(startX, currentX);
+                const y = Math.min(startY, currentY);
+                const width = Math.abs(currentX - startX);
+                const height = Math.abs(currentY - startY);
+                
+                // Canvas 좌표로 변환 (스케일 고려)
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                cropSelection = {
+                    x: x * scaleX,
+                    y: y * scaleY,
+                    width: width * scaleX,
+                    height: height * scaleY,
+                    startX: startX,
+                    startY: startY
+                };
+                
+                selectionBox.style.left = `${x}px`;
+                selectionBox.style.top = `${y}px`;
+                selectionBox.style.width = `${width}px`;
+                selectionBox.style.height = `${height}px`;
+            });
+            
+            overlay.addEventListener('mouseup', () => {
+                if (!isCropMode) return;
+                isDragging = false;
+            });
+            
+            pageDiv.appendChild(overlay);
+        }
+
         const pageNumber = document.createElement('div');
         pageNumber.className = 'page-number';
         pageNumber.textContent = `페이지 ${i}`;
@@ -373,6 +471,156 @@ async function renderPdfPreview() {
         pageDiv.appendChild(canvas);
         pageDiv.appendChild(pageNumber);
         pdfPreview.appendChild(pageDiv);
+    }
+}
+
+// 크롭 적용 함수
+async function applyCrop() {
+    if (!cropSelection) {
+        alert('크롭할 영역을 선택하세요.');
+        return;
+    }
+    
+    try {
+        const applyCropBtn = document.getElementById('applyCropBtn');
+        if (applyCropBtn) {
+            applyCropBtn.disabled = true;
+            applyCropBtn.textContent = '처리 중...';
+        }
+        
+        if (typeof PDFLib === 'undefined') {
+            throw new Error('PDFLib 라이브러리가 로드되지 않았습니다.');
+        }
+        
+        const { PDFDocument } = PDFLib;
+        const numPages = currentPdfDoc.numPages;
+        
+        // 새 PDF 문서 생성
+        const newPdf = await PDFDocument.create();
+        
+        // 첫 번째 페이지의 viewport를 기준으로 크롭 좌표 계산
+        const firstPage = await currentPdfDoc.getPage(1);
+        const firstViewport = firstPage.getViewport({ scale: 1.5 });
+        
+        // 크롭 좌표를 PDF 좌표계로 변환
+        const scaleX = firstViewport.width / (firstViewport.width);
+        const scaleY = firstViewport.height / (firstViewport.height);
+        
+        const cropX = cropSelection.x;
+        const cropY = cropSelection.y;
+        const cropWidth = cropSelection.width;
+        const cropHeight = cropSelection.height;
+        
+        // 각 페이지를 크롭
+        for (let i = 1; i <= numPages; i++) {
+            const page = await currentPdfDoc.getPage(i);
+            const viewport = page.getViewport({ scale: 2.0 }); // 고해상도로 렌더링
+            
+            // 페이지를 Canvas로 렌더링
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+            
+            // 크롭 좌표를 고해상도 viewport에 맞게 조정
+            const highScaleX = viewport.width / firstViewport.width;
+            const highScaleY = viewport.height / firstViewport.height;
+            
+            const scaledCropX = cropX * highScaleX;
+            const scaledCropY = cropY * highScaleY;
+            const scaledCropWidth = cropWidth * highScaleX;
+            const scaledCropHeight = cropHeight * highScaleY;
+            
+            // 크롭된 영역만 추출
+            const croppedCanvas = document.createElement('canvas');
+            const croppedContext = croppedCanvas.getContext('2d');
+            croppedCanvas.width = scaledCropWidth;
+            croppedCanvas.height = scaledCropHeight;
+            
+            croppedContext.drawImage(
+                canvas,
+                scaledCropX, scaledCropY, scaledCropWidth, scaledCropHeight,
+                0, 0, scaledCropWidth, scaledCropHeight
+            );
+            
+            // Canvas를 PNG로 변환
+            const imageData = croppedCanvas.toDataURL('image/png');
+            const base64 = imageData.split(',')[1];
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let j = 0; j < binary.length; j++) {
+                bytes[j] = binary.charCodeAt(j);
+            }
+            
+            // 이미지를 PDF에 임베드
+            const image = await newPdf.embedPng(bytes);
+            
+            // 크롭된 페이지 추가
+            const newPage = newPdf.addPage([scaledCropWidth, scaledCropHeight]);
+            newPage.drawImage(image, {
+                x: 0,
+                y: 0,
+                width: scaledCropWidth,
+                height: scaledCropHeight,
+            });
+        }
+        
+        // PDF 저장
+        const base64String = await newPdf.saveAsBase64();
+        const binaryString = atob(base64String);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        savePdfBytes(bytes);
+        
+        // pdf.js에 전달
+        const pdfArrayBuffer = new ArrayBuffer(bytes.length);
+        const pdfView = new Uint8Array(pdfArrayBuffer);
+        pdfView.set(bytes);
+        
+        currentPdfDoc = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
+        pdfPages = [];
+        
+        const newNumPages = currentPdfDoc.numPages;
+        totalPages.textContent = newNumPages;
+        
+        // 페이지 목록 생성
+        updatePageList(newNumPages);
+        
+        // 크롭 모드 비활성화
+        isCropMode = false;
+        cropSelection = null;
+        cropStartPos = null;
+        
+        if (applyCropBtn) {
+            applyCropBtn.style.display = 'none';
+        }
+        
+        // PDF 미리보기 렌더링
+        await renderPdfPreview();
+        
+        downloadBtn.disabled = false;
+        downloadJpgBtn.disabled = false;
+        downloadTextBtn.disabled = false;
+        
+        alert(`PDF가 크롭되었습니다. ${numPages}페이지가 처리되었습니다.`);
+        
+    } catch (error) {
+        console.error('PDF 크롭 오류:', error);
+        alert(`PDF 크롭 중 오류가 발생했습니다: ${error.message || error}`);
+    } finally {
+        const applyCropBtn = document.getElementById('applyCropBtn');
+        if (applyCropBtn) {
+            applyCropBtn.disabled = false;
+            applyCropBtn.textContent = '✂️ 크롭 적용';
+        }
     }
 }
 
@@ -537,6 +785,10 @@ splitBtn.addEventListener('click', async () => {
         updatePageList(numPages);
         await renderPdfPreview();
 
+        downloadBtn.disabled = false;
+        downloadJpgBtn.disabled = false;
+        downloadTextBtn.disabled = false;
+
         splitFrom.value = '';
         splitTo.value = '';
         
@@ -610,6 +862,10 @@ deleteBtn.addEventListener('click', async () => {
         updatePageList(numPages);
         await renderPdfPreview();
 
+        downloadBtn.disabled = false;
+        downloadJpgBtn.disabled = false;
+        downloadTextBtn.disabled = false;
+
         deletePage.value = '';
         
         alert(`페이지 ${pageNum}이(가) 삭제되었습니다.`);
@@ -618,6 +874,455 @@ deleteBtn.addEventListener('click', async () => {
         alert(`페이지 삭제 중 오류가 발생했습니다: ${error.message || error}`);
     }
 });
+
+// PDF 자르기 모달 열기
+splitPdfBtn.addEventListener('click', () => {
+    if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
+        alert('PDF파일이 열려있지 않습니다.');
+        return;
+    }
+    splitPdfModal.style.display = 'flex';
+});
+
+// PDF 자르기 모달 닫기
+closeSplitPdfModal.addEventListener('click', () => {
+    splitPdfModal.style.display = 'none';
+});
+
+cancelSplitPdfBtn.addEventListener('click', () => {
+    splitPdfModal.style.display = 'none';
+});
+
+// 모달 외부 클릭 시 닫기
+splitPdfModal.addEventListener('click', (e) => {
+    if (e.target === splitPdfModal) {
+        splitPdfModal.style.display = 'none';
+    }
+});
+
+// PDF 자르기 실행
+executeSplitPdfBtn.addEventListener('click', async () => {
+    const splitDirection = document.querySelector('input[name="splitDirection"]:checked').value;
+    
+    // 크롭 모드인 경우
+    if (splitDirection === 'crop') {
+        splitPdfModal.style.display = 'none';
+        isCropMode = true;
+        cropSelection = null;
+        cropStartPos = null;
+        
+        // 크롭 모드 활성화 안내
+        alert('PDF 미리보기에서 드래그하여 크롭할 영역을 선택하세요.\n선택 후 "크롭 적용" 버튼을 클릭하세요.');
+        
+        // 크롭 적용 버튼 추가
+        if (!document.getElementById('applyCropBtn')) {
+            const applyCropBtn = document.createElement('button');
+            applyCropBtn.id = 'applyCropBtn';
+            applyCropBtn.className = 'btn btn-success';
+            applyCropBtn.textContent = '✂️ 크롭 적용';
+            applyCropBtn.style.position = 'fixed';
+            applyCropBtn.style.top = '20px';
+            applyCropBtn.style.right = '20px';
+            applyCropBtn.style.zIndex = '1001';
+            applyCropBtn.style.display = 'none';
+            document.body.appendChild(applyCropBtn);
+            
+            applyCropBtn.addEventListener('click', async () => {
+                if (!cropSelection) {
+                    alert('먼저 크롭할 영역을 선택하세요.');
+                    return;
+                }
+                await applyCrop();
+            });
+        }
+        
+        document.getElementById('applyCropBtn').style.display = 'block';
+        
+        // 미리보기 다시 렌더링하여 크롭 모드 활성화
+        await renderPdfPreview();
+        return;
+    }
+    
+    try {
+        executeSplitPdfBtn.disabled = true;
+        executeSplitPdfBtn.textContent = '처리 중...';
+
+        if (typeof PDFLib === 'undefined') {
+            throw new Error('PDFLib 라이브러리가 로드되지 않았습니다.');
+        }
+
+        const { PDFDocument } = PDFLib;
+        const numPages = currentPdfDoc.numPages;
+
+        // 새 PDF 문서 생성
+        const newPdf = await PDFDocument.create();
+
+        // 각 페이지를 자르기
+        for (let i = 1; i <= numPages; i++) {
+            const page = await currentPdfDoc.getPage(i);
+            const viewport = page.getViewport({ scale: 2.0 }); // 고해상도로 렌더링
+
+            // 페이지를 Canvas로 렌더링
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+
+            if (splitDirection === 'horizontal') {
+                // 좌우 반으로 자르기
+                const halfWidth = Math.floor(viewport.width / 2);
+
+                // 왼쪽 절반 이미지 생성
+                const leftCanvas = document.createElement('canvas');
+                const leftContext = leftCanvas.getContext('2d');
+                leftCanvas.width = halfWidth;
+                leftCanvas.height = viewport.height;
+                leftContext.drawImage(canvas, 0, 0, halfWidth, viewport.height, 0, 0, halfWidth, viewport.height);
+
+                // 오른쪽 절반 이미지 생성
+                const rightCanvas = document.createElement('canvas');
+                const rightContext = rightCanvas.getContext('2d');
+                rightCanvas.width = halfWidth;
+                rightCanvas.height = viewport.height;
+                rightContext.drawImage(canvas, halfWidth, 0, halfWidth, viewport.height, 0, 0, halfWidth, viewport.height);
+
+                // Canvas를 PNG로 변환
+                const leftImageData = leftCanvas.toDataURL('image/png');
+                const rightImageData = rightCanvas.toDataURL('image/png');
+
+                // Base64를 Uint8Array로 변환
+                const leftBase64 = leftImageData.split(',')[1];
+                const leftBinary = atob(leftBase64);
+                const leftBytes = new Uint8Array(leftBinary.length);
+                for (let j = 0; j < leftBinary.length; j++) {
+                    leftBytes[j] = leftBinary.charCodeAt(j);
+                }
+
+                const rightBase64 = rightImageData.split(',')[1];
+                const rightBinary = atob(rightBase64);
+                const rightBytes = new Uint8Array(rightBinary.length);
+                for (let j = 0; j < rightBinary.length; j++) {
+                    rightBytes[j] = rightBinary.charCodeAt(j);
+                }
+
+                // 이미지를 PDF에 임베드
+                const leftImage = await newPdf.embedPng(leftBytes);
+                const rightImage = await newPdf.embedPng(rightBytes);
+
+                // 왼쪽 페이지 추가
+                const leftPage = newPdf.addPage([halfWidth, viewport.height]);
+                leftPage.drawImage(leftImage, {
+                    x: 0,
+                    y: 0,
+                    width: halfWidth,
+                    height: viewport.height,
+                });
+
+                // 오른쪽 페이지 추가
+                const rightPage = newPdf.addPage([halfWidth, viewport.height]);
+                rightPage.drawImage(rightImage, {
+                    x: 0,
+                    y: 0,
+                    width: halfWidth,
+                    height: viewport.height,
+                });
+            } else {
+                // 상하 반으로 자르기
+                const halfHeight = Math.floor(viewport.height / 2);
+
+                // 위쪽 절반 이미지 생성
+                const topCanvas = document.createElement('canvas');
+                const topContext = topCanvas.getContext('2d');
+                topCanvas.width = viewport.width;
+                topCanvas.height = halfHeight;
+                topContext.drawImage(canvas, 0, 0, viewport.width, halfHeight, 0, 0, viewport.width, halfHeight);
+
+                // 아래쪽 절반 이미지 생성
+                const bottomCanvas = document.createElement('canvas');
+                const bottomContext = bottomCanvas.getContext('2d');
+                bottomCanvas.width = viewport.width;
+                bottomCanvas.height = halfHeight;
+                bottomContext.drawImage(canvas, 0, halfHeight, viewport.width, halfHeight, 0, 0, viewport.width, halfHeight);
+
+                // Canvas를 PNG로 변환
+                const topImageData = topCanvas.toDataURL('image/png');
+                const bottomImageData = bottomCanvas.toDataURL('image/png');
+
+                // Base64를 Uint8Array로 변환
+                const topBase64 = topImageData.split(',')[1];
+                const topBinary = atob(topBase64);
+                const topBytes = new Uint8Array(topBinary.length);
+                for (let j = 0; j < topBinary.length; j++) {
+                    topBytes[j] = topBinary.charCodeAt(j);
+                }
+
+                const bottomBase64 = bottomImageData.split(',')[1];
+                const bottomBinary = atob(bottomBase64);
+                const bottomBytes = new Uint8Array(bottomBinary.length);
+                for (let j = 0; j < bottomBinary.length; j++) {
+                    bottomBytes[j] = bottomBinary.charCodeAt(j);
+                }
+
+                // 이미지를 PDF에 임베드
+                const topImage = await newPdf.embedPng(topBytes);
+                const bottomImage = await newPdf.embedPng(bottomBytes);
+
+                // 위쪽 페이지 추가
+                const topPage = newPdf.addPage([viewport.width, halfHeight]);
+                topPage.drawImage(topImage, {
+                    x: 0,
+                    y: 0,
+                    width: viewport.width,
+                    height: halfHeight,
+                });
+
+                // 아래쪽 페이지 추가
+                const bottomPage = newPdf.addPage([viewport.width, halfHeight]);
+                bottomPage.drawImage(bottomImage, {
+                    x: 0,
+                    y: 0,
+                    width: viewport.width,
+                    height: halfHeight,
+                });
+            }
+        }
+
+        // PDF 저장
+        const base64String = await newPdf.saveAsBase64();
+        const binaryString = atob(base64String);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        savePdfBytes(bytes);
+
+        // pdf.js에 전달
+        const pdfArrayBuffer = new ArrayBuffer(bytes.length);
+        const pdfView = new Uint8Array(pdfArrayBuffer);
+        pdfView.set(bytes);
+
+        currentPdfDoc = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
+        pdfPages = [];
+
+        const newNumPages = currentPdfDoc.numPages;
+        totalPages.textContent = newNumPages;
+
+        // 페이지 목록 생성
+        updatePageList(newNumPages);
+
+        // PDF 미리보기 렌더링
+        await renderPdfPreview();
+
+        downloadBtn.disabled = false;
+        downloadJpgBtn.disabled = false;
+        downloadTextBtn.disabled = false;
+
+        // 모달 닫기
+        splitPdfModal.style.display = 'none';
+
+        const directionText = splitDirection === 'horizontal' ? '좌우' : '상하';
+        alert(`PDF가 ${directionText}로 분할되었습니다. ${numPages}페이지가 ${newNumPages}페이지로 변경되었습니다.`);
+
+    } catch (error) {
+        console.error('PDF 자르기 오류:', error);
+        alert(`PDF 자르기 중 오류가 발생했습니다: ${error.message || error}`);
+    } finally {
+        executeSplitPdfBtn.disabled = false;
+        executeSplitPdfBtn.textContent = '확인';
+    }
+});
+
+// 페이지 회전하기 모달 열기
+if (rotatePdfBtn) {
+    rotatePdfBtn.addEventListener('click', () => {
+        if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
+            alert('PDF파일이 열려있지 않습니다.');
+            return;
+        }
+        rotatePdfModal.style.display = 'block';
+        
+        // 페이지 선택 라디오 버튼에 따라 입력 필드 표시/숨김
+        const pageSelectionRadios = document.querySelectorAll('input[name="rotatePageSelection"]');
+        const rotatePageInputs = document.getElementById('rotatePageInputs');
+        const rotatePageRange = document.getElementById('rotatePageRange');
+        
+        pageSelectionRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'all') {
+                    rotatePageRange.style.display = 'none';
+                } else {
+                    rotatePageRange.style.display = 'block';
+                    if (radio.value === 'range') {
+                        rotatePageRange.placeholder = '예: 1-3 또는 1,3,5';
+                    } else if (radio.value === 'specific') {
+                        rotatePageRange.placeholder = '예: 1,3,5';
+                    }
+                }
+            });
+        });
+    });
+}
+
+// 페이지 회전하기 모달 닫기
+if (closeRotatePdfModal) {
+    closeRotatePdfModal.addEventListener('click', () => {
+        rotatePdfModal.style.display = 'none';
+    });
+}
+
+if (cancelRotatePdfBtn) {
+    cancelRotatePdfBtn.addEventListener('click', () => {
+        rotatePdfModal.style.display = 'none';
+    });
+}
+
+// 페이지 회전하기 실행
+if (executeRotatePdfBtn) {
+    executeRotatePdfBtn.addEventListener('click', async () => {
+        if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
+            alert('PDF 데이터가 없습니다.');
+            return;
+        }
+
+        try {
+            const numPages = currentPdfDoc.numPages;
+            const pageSelection = document.querySelector('input[name="rotatePageSelection"]:checked').value;
+            const rotateDirection = parseInt(document.querySelector('input[name="rotateDirection"]:checked').value);
+            const rotatePageRange = document.getElementById('rotatePageRange');
+            
+            // 회전할 페이지 목록 결정
+            let pagesToRotate = [];
+            
+            if (pageSelection === 'all') {
+                // 전체 페이지
+                pagesToRotate = Array.from({ length: numPages }, (_, i) => i);
+            } else if (pageSelection === 'range' || pageSelection === 'specific') {
+                // 페이지 범위 또는 특정 페이지
+                const input = rotatePageRange.value.trim();
+                if (!input) {
+                    alert('페이지를 입력하세요.');
+                    return;
+                }
+                
+                // 입력 파싱 (예: "1-3" 또는 "1,3,5" 또는 "1-3,5,7-9")
+                const parts = input.split(',');
+                for (const part of parts) {
+                    const trimmed = part.trim();
+                    if (trimmed.includes('-')) {
+                        // 범위 (예: "1-3")
+                        const [start, end] = trimmed.split('-').map(s => parseInt(s.trim()));
+                        if (isNaN(start) || isNaN(end) || start < 1 || end > numPages || start > end) {
+                            alert(`잘못된 페이지 범위입니다: ${trimmed}`);
+                            return;
+                        }
+                        for (let i = start; i <= end; i++) {
+                            const pageIndex = i - 1; // 0-based index
+                            if (!pagesToRotate.includes(pageIndex)) {
+                                pagesToRotate.push(pageIndex);
+                            }
+                        }
+                    } else {
+                        // 단일 페이지 (예: "1")
+                        const pageNum = parseInt(trimmed);
+                        if (isNaN(pageNum) || pageNum < 1 || pageNum > numPages) {
+                            alert(`잘못된 페이지 번호입니다: ${trimmed}`);
+                            return;
+                        }
+                        const pageIndex = pageNum - 1; // 0-based index
+                        if (!pagesToRotate.includes(pageIndex)) {
+                            pagesToRotate.push(pageIndex);
+                        }
+                    }
+                }
+                
+                if (pagesToRotate.length === 0) {
+                    alert('회전할 페이지를 선택하세요.');
+                    return;
+                }
+            }
+            
+            executeRotatePdfBtn.disabled = true;
+            executeRotatePdfBtn.textContent = '처리 중...';
+            
+            if (typeof PDFLib === 'undefined') {
+                throw new Error('PDFLib 라이브러리가 로드되지 않았습니다.');
+            }
+
+            const { PDFDocument } = PDFLib;
+            
+            // currentPdfBytes를 안전하게 복사하여 사용
+            const sourceBytes = new Uint8Array(currentPdfBytes);
+            const sourceArrayBuffer = new ArrayBuffer(sourceBytes.length);
+            const sourceView = new Uint8Array(sourceArrayBuffer);
+            sourceView.set(sourceBytes);
+            
+            const sourcePdf = await PDFDocument.load(sourceArrayBuffer);
+            const newPdf = await PDFDocument.create();
+            
+            // 모든 페이지를 복사하고 선택된 페이지만 회전
+            for (let i = 0; i < numPages; i++) {
+                const [copiedPage] = await newPdf.copyPages(sourcePdf, [i]);
+                const newPage = newPdf.addPage(copiedPage);
+                
+                // 회전할 페이지인 경우 회전 적용
+                if (pagesToRotate.includes(i)) {
+                    // 현재 회전 각도 가져오기
+                    const currentRotation = copiedPage.getRotation().angle;
+                    // 새로운 회전 각도 계산
+                    const newRotationAngle = (currentRotation + rotateDirection) % 360;
+                    // pdf-lib의 degrees 함수를 사용하여 Rotation 객체 생성
+                    newPage.setRotation(PDFLib.degrees(newRotationAngle));
+                }
+            }
+            
+            // 저장
+            const base64String = await newPdf.saveAsBase64();
+            const binaryString = atob(base64String);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            savePdfBytes(bytes);
+            
+            // pdf.js에 전달
+            const pdfArrayBuffer = new ArrayBuffer(bytes.length);
+            const pdfView = new Uint8Array(pdfArrayBuffer);
+            pdfView.set(bytes);
+            
+            currentPdfDoc = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
+            pdfPages = [];
+            
+            const newNumPages = currentPdfDoc.numPages;
+            totalPages.textContent = newNumPages;
+            
+            updatePageList(newNumPages);
+            await renderPdfPreview();
+            
+            downloadBtn.disabled = false;
+            downloadJpgBtn.disabled = false;
+            downloadTextBtn.disabled = false;
+            splitPdfBtn.disabled = false;
+            rotatePdfBtn.disabled = false;
+            
+            // 모달 닫기
+            rotatePdfModal.style.display = 'none';
+            
+            alert(`${pagesToRotate.length}개의 페이지가 ${rotateDirection}도 회전되었습니다.`);
+        } catch (error) {
+            console.error('페이지 회전 오류:', error);
+            alert(`페이지 회전 중 오류가 발생했습니다: ${error.message || error}`);
+        } finally {
+            executeRotatePdfBtn.disabled = false;
+            executeRotatePdfBtn.textContent = '적용';
+        }
+    });
+}
 
 // PDF 다운로드
 downloadBtn.addEventListener('click', () => {
@@ -704,15 +1409,10 @@ downloadJpgBtn.addEventListener('click', async () => {
     }
 });
 
-// PPT로 다운로드
-downloadPptBtn.addEventListener('click', async () => {
+// 텍스트로 다운로드
+downloadTextBtn.addEventListener('click', async () => {
     if (!currentPdfDoc) {
         alert('다운로드할 PDF가 없습니다.');
-        return;
-    }
-
-    if (typeof PptxGenJS === 'undefined') {
-        alert('PPT 생성 라이브러리가 로드되지 않았습니다. 페이지를 새로고침해주세요.');
         return;
     }
 
@@ -720,134 +1420,277 @@ downloadPptBtn.addEventListener('click', async () => {
         const numPages = currentPdfDoc.numPages;
         
         // 진행 상황 표시
-        downloadPptBtn.disabled = true;
-        downloadPptBtn.textContent = 'PPT 생성 중...';
+        downloadTextBtn.disabled = true;
+        downloadTextBtn.textContent = '텍스트 추출 중...';
         
-        // 새 PPT 프레젠테이션 생성
-        const pptx = new PptxGenJS();
-        pptx.layout = 'LAYOUT_WIDE'; // 16:9 비율
+        // 모든 페이지에서 텍스트 추출
+        let allText = '';
+        let hasText = false;
         
-        // PPT 슬라이드 크기 (인치 단위) - LAYOUT_WIDE는 10 x 5.625 인치
-        const pptWidth = 10;
-        const pptHeight = 5.625;
-        
-        // 각 페이지를 텍스트로 변환하여 PPT 슬라이드에 추가
         for (let i = 1; i <= numPages; i++) {
             const page = await currentPdfDoc.getPage(i);
-            const viewport = page.getViewport({ scale: 1.0 });
-            
-            // 텍스트 내용 추출
             const textContent = await page.getTextContent();
             
-            // 새 슬라이드 추가
-            const slide = pptx.addSlide();
-            
-            // PDF 페이지 크기
-            const pdfWidth = viewport.width;
-            const pdfHeight = viewport.height;
-            
-            // PDF 좌표를 PPT 좌표로 변환하는 비율
-            const scaleX = pptWidth / pdfWidth;
-            const scaleY = pptHeight / pdfHeight;
-            
-            // 텍스트 항목들을 처리
-            const textItems = [];
+            // 페이지별 텍스트 추출
+            let pageText = '';
             textContent.items.forEach((textItem) => {
                 if (textItem.str && textItem.str.trim()) {
-                    try {
-                        const tx = textItem.transform;
-                        const x = tx[4];
-                        const fontSize = Math.abs(tx[0]) || 12;
-                        const fontHeight = Math.abs(tx[3]) || fontSize;
-                        // PDF 좌표계는 하단이 0이므로 Y 좌표 변환
-                        const y = pdfHeight - tx[5] - fontHeight;
-                        
-                        // PPT 좌표로 변환 (인치 단위)
-                        let pptX = x * scaleX;
-                        let pptY = y * scaleY;
-                        const pptFontSize = Math.max(8, Math.min(72, fontSize * scaleY * 0.75));
-                        
-                        // 좌표 범위 검증 (슬라이드 범위 내로 제한)
-                        pptX = Math.max(0, Math.min(pptWidth - 0.5, pptX));
-                        pptY = Math.max(0, Math.min(pptHeight - 0.5, pptY));
-                        
-                        // 텍스트 너비 계산
-                        const textWidth = Math.min(pptWidth - pptX, (textItem.str.length * pptFontSize * 0.1));
-                        const textHeight = Math.min(pptHeight - pptY, fontHeight * scaleY);
-                        
-                        if (textWidth > 0 && textHeight > 0 && pptX >= 0 && pptY >= 0) {
-                            textItems.push({
-                                text: textItem.str,
-                                x: pptX,
-                                y: pptY,
-                                w: textWidth,
-                                h: textHeight,
-                                fontSize: pptFontSize,
-                                bold: textItem.fontName && textItem.fontName.includes('Bold'),
-                                italic: textItem.fontName && textItem.fontName.includes('Italic')
-                            });
-                        }
-                    } catch (error) {
-                        console.warn('텍스트 항목 처리 실패:', error, textItem);
-                    }
+                    pageText += textItem.str + ' ';
+                    hasText = true;
                 }
             });
             
-            // 텍스트 항목들을 슬라이드에 추가 (최대 500개로 제한하여 안정성 확보)
-            const maxItems = Math.min(500, textItems.length);
-            for (let j = 0; j < maxItems; j++) {
-                const item = textItems[j];
-                try {
-                    slide.addText(item.text, {
-                        x: item.x,
-                        y: item.y,
-                        w: item.w,
-                        h: item.h,
-                        fontSize: item.fontSize,
-                        fontFace: 'Arial',
-                        bold: item.bold || false,
-                        italic: item.italic || false,
-                        color: '000000',
-                        align: 'left',
-                        valign: 'top',
-                        wrap: false
-                    });
-                } catch (error) {
-                    console.warn('텍스트 추가 실패:', error, item);
-                }
-            }
-            
-            // 텍스트가 없는 경우 빈 슬라이드라도 유지
-            if (textItems.length === 0) {
-                slide.addText(`페이지 ${i}`, {
-                    x: 0.5,
-                    y: 0.5,
-                    w: 9,
-                    h: 1,
-                    fontSize: 24,
-                    color: '666666'
-                });
+            if (pageText.trim()) {
+                allText += `=== 페이지 ${i} ===\n\n${pageText.trim()}\n\n\n`;
             }
             
             // 진행 상황 업데이트
-            downloadPptBtn.textContent = `PPT 생성 중... (${i}/${numPages})`;
+            downloadTextBtn.textContent = `텍스트 추출 중... (${i}/${numPages})`;
         }
         
-        // PPT 파일 다운로드
-        const timestamp = Date.now();
-        await pptx.writeFile({ fileName: `pdf_to_ppt_${timestamp}.pptx` });
+        // 텍스트가 없는 경우 경고
+        if (!hasText || !allText.trim()) {
+            downloadTextBtn.disabled = false;
+            downloadTextBtn.textContent = '📝 텍스트로 다운로드';
+            alert('이미지PDF는 OCR을 통해 텍스트를 추출할 수 있습니다.');
+            return;
+        }
         
-        downloadPptBtn.disabled = false;
-        downloadPptBtn.textContent = '📊 PPT로 다운로드';
+        // 텍스트 파일로 다운로드
+        const blob = new Blob([allText], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pdf_text_${Date.now()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
-        alert(`${numPages}개의 페이지가 텍스트 형태로 PPT 파일로 다운로드되었습니다.`);
+        downloadTextBtn.disabled = false;
+        downloadTextBtn.textContent = '📝 텍스트로 다운로드';
+        
+        alert('텍스트 파일이 다운로드되었습니다.');
     } catch (error) {
-        console.error('PPT 다운로드 오류:', error);
-        downloadPptBtn.disabled = false;
-        downloadPptBtn.textContent = '📊 PPT로 다운로드';
-        alert(`PPT 다운로드 중 오류가 발생했습니다: ${error.message || error}`);
+        console.error('텍스트 다운로드 오류:', error);
+        downloadTextBtn.disabled = false;
+        downloadTextBtn.textContent = '📝 텍스트로 다운로드';
+        alert(`텍스트 다운로드 중 오류가 발생했습니다: ${error.message || error}`);
     }
 });
+
+// 페이지 회전하기 모달 열기
+if (rotatePdfBtn) {
+    rotatePdfBtn.addEventListener('click', () => {
+        if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
+            alert('PDF파일이 열려있지 않습니다.');
+            return;
+        }
+        rotatePdfModal.style.display = 'block';
+        
+        // 페이지 선택 라디오 버튼에 따라 입력 필드 표시/숨김
+        const pageSelectionRadios = document.querySelectorAll('input[name="rotatePageSelection"]');
+        const rotatePageInputs = document.getElementById('rotatePageInputs');
+        const rotatePageRange = document.getElementById('rotatePageRange');
+        
+        pageSelectionRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'all') {
+                    rotatePageRange.style.display = 'none';
+                } else {
+                    rotatePageRange.style.display = 'block';
+                    if (radio.value === 'range') {
+                        rotatePageRange.placeholder = '예: 1-3 또는 1,3,5';
+                    } else if (radio.value === 'specific') {
+                        rotatePageRange.placeholder = '예: 1,3,5';
+                    }
+                }
+            });
+        });
+    });
+}
+
+// 페이지 회전하기 모달 닫기
+if (closeRotatePdfModal) {
+    closeRotatePdfModal.addEventListener('click', () => {
+        rotatePdfModal.style.display = 'none';
+    });
+}
+
+if (cancelRotatePdfBtn) {
+    cancelRotatePdfBtn.addEventListener('click', () => {
+        rotatePdfModal.style.display = 'none';
+    });
+}
+
+// 페이지 회전하기 실행
+if (executeRotatePdfBtn) {
+    executeRotatePdfBtn.addEventListener('click', async () => {
+        if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
+            alert('PDF 데이터가 없습니다.');
+            return;
+        }
+
+        try {
+            const numPages = currentPdfDoc.numPages;
+            const pageSelection = document.querySelector('input[name="rotatePageSelection"]:checked').value;
+            const rotateDirection = parseInt(document.querySelector('input[name="rotateDirection"]:checked').value);
+            const rotatePageRange = document.getElementById('rotatePageRange');
+            
+            // 회전할 페이지 목록 결정
+            let pagesToRotate = [];
+            
+            if (pageSelection === 'all') {
+                // 전체 페이지
+                pagesToRotate = Array.from({ length: numPages }, (_, i) => i);
+            } else if (pageSelection === 'range' || pageSelection === 'specific') {
+                // 페이지 범위 또는 특정 페이지
+                const input = rotatePageRange.value.trim();
+                if (!input) {
+                    alert('페이지를 입력하세요.');
+                    return;
+                }
+                
+                // 입력 파싱 (예: "1-3" 또는 "1,3,5" 또는 "1-3,5,7-9")
+                const parts = input.split(',');
+                for (const part of parts) {
+                    const trimmed = part.trim();
+                    if (trimmed.includes('-')) {
+                        // 범위 (예: "1-3")
+                        const [start, end] = trimmed.split('-').map(s => parseInt(s.trim()));
+                        if (isNaN(start) || isNaN(end) || start < 1 || end > numPages || start > end) {
+                            alert(`잘못된 페이지 범위입니다: ${trimmed}`);
+                            return;
+                        }
+                        for (let i = start; i <= end; i++) {
+                            const pageIndex = i - 1; // 0-based index
+                            if (!pagesToRotate.includes(pageIndex)) {
+                                pagesToRotate.push(pageIndex);
+                            }
+                        }
+                    } else {
+                        // 단일 페이지 (예: "1")
+                        const pageNum = parseInt(trimmed);
+                        if (isNaN(pageNum) || pageNum < 1 || pageNum > numPages) {
+                            alert(`잘못된 페이지 번호입니다: ${trimmed}`);
+                            return;
+                        }
+                        const pageIndex = pageNum - 1; // 0-based index
+                        if (!pagesToRotate.includes(pageIndex)) {
+                            pagesToRotate.push(pageIndex);
+                        }
+                    }
+                }
+                
+                if (pagesToRotate.length === 0) {
+                    alert('회전할 페이지를 선택하세요.');
+                    return;
+                }
+            }
+            
+            executeRotatePdfBtn.disabled = true;
+            executeRotatePdfBtn.textContent = '처리 중...';
+            
+            if (typeof PDFLib === 'undefined') {
+                throw new Error('PDFLib 라이브러리가 로드되지 않았습니다.');
+            }
+
+            const { PDFDocument } = PDFLib;
+            
+            // currentPdfBytes를 안전하게 복사하여 사용
+            const sourceBytes = new Uint8Array(currentPdfBytes);
+            const sourceArrayBuffer = new ArrayBuffer(sourceBytes.length);
+            const sourceView = new Uint8Array(sourceArrayBuffer);
+            sourceView.set(sourceBytes);
+            
+            const sourcePdf = await PDFDocument.load(sourceArrayBuffer);
+            const newPdf = await PDFDocument.create();
+            
+            // 모든 페이지를 복사하고 선택된 페이지만 회전
+            for (let i = 0; i < numPages; i++) {
+                const [copiedPage] = await newPdf.copyPages(sourcePdf, [i]);
+                const newPage = newPdf.addPage(copiedPage);
+                
+                // 회전할 페이지인 경우 회전 적용
+                if (pagesToRotate.includes(i)) {
+                    // 현재 회전 각도 가져오기
+                    const currentRotation = copiedPage.getRotation().angle;
+                    // 새로운 회전 각도 계산
+                    const newRotationAngle = (currentRotation + rotateDirection) % 360;
+                    // pdf-lib의 degrees 함수를 사용하여 Rotation 객체 생성
+                    newPage.setRotation(PDFLib.degrees(newRotationAngle));
+                }
+            }
+            
+            // 저장
+            const base64String = await newPdf.saveAsBase64();
+            const binaryString = atob(base64String);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            savePdfBytes(bytes);
+            
+            // pdf.js에 전달
+            const pdfArrayBuffer = new ArrayBuffer(bytes.length);
+            const pdfView = new Uint8Array(pdfArrayBuffer);
+            pdfView.set(bytes);
+            
+            currentPdfDoc = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
+            pdfPages = [];
+            
+            const newNumPages = currentPdfDoc.numPages;
+            totalPages.textContent = newNumPages;
+            
+            updatePageList(newNumPages);
+            await renderPdfPreview();
+            
+            downloadBtn.disabled = false;
+            downloadJpgBtn.disabled = false;
+            downloadTextBtn.disabled = false;
+            splitPdfBtn.disabled = false;
+            rotatePdfBtn.disabled = false;
+            
+            // 모달 닫기
+            rotatePdfModal.style.display = 'none';
+            
+            alert(`${pagesToRotate.length}개의 페이지가 ${rotateDirection}도 회전되었습니다.`);
+        } catch (error) {
+            console.error('페이지 회전 오류:', error);
+            alert(`페이지 회전 중 오류가 발생했습니다: ${error.message || error}`);
+        } finally {
+            executeRotatePdfBtn.disabled = false;
+            executeRotatePdfBtn.textContent = '적용';
+        }
+    });
+}
+
+// 사용법 모달 열기
+if (helpBtn) {
+    helpBtn.addEventListener('click', () => {
+        if (helpModal) {
+            helpModal.style.display = 'flex';
+        }
+    });
+}
+
+// 사용법 모달 닫기
+if (closeHelpModal) {
+    closeHelpModal.addEventListener('click', () => {
+        if (helpModal) {
+            helpModal.style.display = 'none';
+        }
+    });
+}
+
+// 사용법 모달 외부 클릭 시 닫기
+if (helpModal) {
+    helpModal.addEventListener('click', (e) => {
+        if (e.target === helpModal) {
+            helpModal.style.display = 'none';
+        }
+    });
+}
 
 // 이미지로 PDF 만들기 모달 열기
 if (imageToPdfBtn) {
@@ -1051,7 +1894,7 @@ uploadImagesBtn.addEventListener('click', async () => {
 
         downloadBtn.disabled = false;
         downloadJpgBtn.disabled = false;
-        downloadPptBtn.disabled = false;
+        downloadTextBtn.disabled = false;
 
         // 파일 정보 업데이트
         fileInfo.innerHTML = `
@@ -1197,7 +2040,7 @@ executeMergeBtn.addEventListener('click', async () => {
 
         downloadBtn.disabled = false;
         downloadJpgBtn.disabled = false;
-        downloadPptBtn.disabled = false;
+        downloadTextBtn.disabled = false;
 
         // 파일 정보 업데이트
         fileInfo.innerHTML = `
@@ -1238,7 +2081,8 @@ resetBtn.addEventListener('click', () => {
 
         downloadBtn.disabled = true;
         downloadJpgBtn.disabled = true;
-        downloadPptBtn.disabled = true;
+        downloadTextBtn.disabled = true;
+        splitPdfBtn.disabled = true;
     }
 });
 
