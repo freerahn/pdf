@@ -920,7 +920,7 @@ async function copyImageFromCanvas(canvas, event) {
     if (splitPdfBtn) {
         splitPdfBtn.addEventListener('click', () => {
             if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
-                alert('PDF file is not open.');
+                alert('PDF data has been lost. Please upload the PDF file again.');
                 return;
             }
             if (splitPdfModal) splitPdfModal.style.display = 'flex';
@@ -1558,7 +1558,7 @@ async function copyImageFromCanvas(canvas, event) {
                 if (downloadBtn) downloadBtn.disabled = false;
                 if (downloadJpgBtn) downloadJpgBtn.disabled = false;
                 if (downloadTextBtn) downloadTextBtn.disabled = false;
-                if (splitPdfBtn) splitPdfBtn.disabled = false;
+                // splitPdfBtn은 항상 활성화 상태로 유지
                 if (rotatePdfBtn) rotatePdfBtn.disabled = false;
                 
                 // 모달 닫기
@@ -2075,7 +2075,7 @@ async function copyImageFromCanvas(canvas, event) {
                 if (downloadBtn) downloadBtn.disabled = true;
                 if (downloadJpgBtn) downloadJpgBtn.disabled = true;
                 if (downloadTextBtn) downloadTextBtn.disabled = true;
-                if (splitPdfBtn) splitPdfBtn.disabled = true;
+                // splitPdfBtn은 항상 활성화 상태로 유지
             }
         });
     }
