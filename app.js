@@ -1182,147 +1182,6 @@ if (cancelRotatePdfBtn) {
     });
 }
 
-// 페이지 회전하기 실행
-if (executeRotatePdfBtn) {
-    executeRotatePdfBtn.addEventListener('click', async () => {
-        if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
-            alert('PDF 데이터가 없습니다.');
-            return;
-        }
-
-        try {
-            const numPages = currentPdfDoc.numPages;
-            const pageSelection = document.querySelector('input[name="rotatePageSelection"]:checked').value;
-            const rotateDirection = parseInt(document.querySelector('input[name="rotateDirection"]:checked').value);
-            const rotatePageRange = document.getElementById('rotatePageRange');
-            
-            // 회전할 페이지 목록 결정
-            let pagesToRotate = [];
-            
-            if (pageSelection === 'all') {
-                // 전체 페이지
-                pagesToRotate = Array.from({ length: numPages }, (_, i) => i);
-            } else if (pageSelection === 'range' || pageSelection === 'specific') {
-                // 페이지 범위 또는 특정 페이지
-                const input = rotatePageRange.value.trim();
-                if (!input) {
-                    alert('페이지를 입력하세요.');
-                    return;
-                }
-                
-                // 입력 파싱 (예: "1-3" 또는 "1,3,5" 또는 "1-3,5,7-9")
-                const parts = input.split(',');
-                for (const part of parts) {
-                    const trimmed = part.trim();
-                    if (trimmed.includes('-')) {
-                        // 범위 (예: "1-3")
-                        const [start, end] = trimmed.split('-').map(s => parseInt(s.trim()));
-                        if (isNaN(start) || isNaN(end) || start < 1 || end > numPages || start > end) {
-                            alert(`잘못된 페이지 범위입니다: ${trimmed}`);
-                            return;
-                        }
-                        for (let i = start; i <= end; i++) {
-                            const pageIndex = i - 1; // 0-based index
-                            if (!pagesToRotate.includes(pageIndex)) {
-                                pagesToRotate.push(pageIndex);
-                            }
-                        }
-                    } else {
-                        // 단일 페이지 (예: "1")
-                        const pageNum = parseInt(trimmed);
-                        if (isNaN(pageNum) || pageNum < 1 || pageNum > numPages) {
-                            alert(`잘못된 페이지 번호입니다: ${trimmed}`);
-                            return;
-                        }
-                        const pageIndex = pageNum - 1; // 0-based index
-                        if (!pagesToRotate.includes(pageIndex)) {
-                            pagesToRotate.push(pageIndex);
-                        }
-                    }
-                }
-                
-                if (pagesToRotate.length === 0) {
-                    alert('회전할 페이지를 선택하세요.');
-                    return;
-                }
-            }
-            
-            executeRotatePdfBtn.disabled = true;
-            executeRotatePdfBtn.textContent = '처리 중...';
-            
-            if (typeof PDFLib === 'undefined') {
-                throw new Error('PDFLib 라이브러리가 로드되지 않았습니다.');
-            }
-
-            const { PDFDocument } = PDFLib;
-            
-            // currentPdfBytes를 안전하게 복사하여 사용
-            const sourceBytes = new Uint8Array(currentPdfBytes);
-            const sourceArrayBuffer = new ArrayBuffer(sourceBytes.length);
-            const sourceView = new Uint8Array(sourceArrayBuffer);
-            sourceView.set(sourceBytes);
-            
-            const sourcePdf = await PDFDocument.load(sourceArrayBuffer);
-            const newPdf = await PDFDocument.create();
-            
-            // 모든 페이지를 복사하고 선택된 페이지만 회전
-            for (let i = 0; i < numPages; i++) {
-                const [copiedPage] = await newPdf.copyPages(sourcePdf, [i]);
-                const newPage = newPdf.addPage(copiedPage);
-                
-                // 회전할 페이지인 경우 회전 적용
-                if (pagesToRotate.includes(i)) {
-                    // 현재 회전 각도 가져오기
-                    const currentRotation = copiedPage.getRotation().angle;
-                    // 새로운 회전 각도 계산
-                    const newRotationAngle = (currentRotation + rotateDirection) % 360;
-                    // pdf-lib의 degrees 함수를 사용하여 Rotation 객체 생성
-                    newPage.setRotation(PDFLib.degrees(newRotationAngle));
-                }
-            }
-            
-            // 저장
-            const base64String = await newPdf.saveAsBase64();
-            const binaryString = atob(base64String);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            savePdfBytes(bytes);
-            
-            // pdf.js에 전달
-            const pdfArrayBuffer = new ArrayBuffer(bytes.length);
-            const pdfView = new Uint8Array(pdfArrayBuffer);
-            pdfView.set(bytes);
-            
-            currentPdfDoc = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
-            pdfPages = [];
-            
-            const newNumPages = currentPdfDoc.numPages;
-            totalPages.textContent = newNumPages;
-            
-            updatePageList(newNumPages);
-            await renderPdfPreview();
-            
-            downloadBtn.disabled = false;
-            downloadJpgBtn.disabled = false;
-            downloadTextBtn.disabled = false;
-            splitPdfBtn.disabled = false;
-            rotatePdfBtn.disabled = false;
-            
-            // 모달 닫기
-            rotatePdfModal.style.display = 'none';
-            
-            alert(`${pagesToRotate.length}개의 페이지가 ${rotateDirection}도 회전되었습니다.`);
-        } catch (error) {
-            console.error('페이지 회전 오류:', error);
-            alert(`페이지 회전 중 오류가 발생했습니다: ${error.message || error}`);
-        } finally {
-            executeRotatePdfBtn.disabled = false;
-            executeRotatePdfBtn.textContent = '적용';
-        }
-    });
-}
 
 // PDF 다운로드
 downloadBtn.addEventListener('click', () => {
@@ -1606,21 +1465,24 @@ if (executeRotatePdfBtn) {
             const sourcePdf = await PDFDocument.load(sourceArrayBuffer);
             const newPdf = await PDFDocument.create();
             
-            // 모든 페이지를 복사하고 선택된 페이지만 회전
-            for (let i = 0; i < numPages; i++) {
-                const [copiedPage] = await newPdf.copyPages(sourcePdf, [i]);
+            // 모든 페이지를 한 번에 복사
+            const allPageIndices = Array.from({ length: numPages }, (_, i) => i);
+            const copiedPages = await newPdf.copyPages(sourcePdf, allPageIndices);
+            
+            // 복사된 페이지들을 추가하고 선택된 페이지만 회전
+            copiedPages.forEach((copiedPage, i) => {
                 const newPage = newPdf.addPage(copiedPage);
                 
                 // 회전할 페이지인 경우 회전 적용
                 if (pagesToRotate.includes(i)) {
                     // 현재 회전 각도 가져오기
-                    const currentRotation = copiedPage.getRotation().angle;
+                    const currentRotation = newPage.getRotation().angle;
                     // 새로운 회전 각도 계산
                     const newRotationAngle = (currentRotation + rotateDirection) % 360;
                     // pdf-lib의 degrees 함수를 사용하여 Rotation 객체 생성
                     newPage.setRotation(PDFLib.degrees(newRotationAngle));
                 }
-            }
+            });
             
             // 저장
             const base64String = await newPdf.saveAsBase64();
