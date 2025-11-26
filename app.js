@@ -650,7 +650,8 @@ function checkPageOrderChanged() {
 }
 
 // 적용 버튼 클릭 시 페이지 순서 변경
-applyPageOrderBtn.addEventListener('click', async () => {
+if (applyPageOrderBtn) {
+    applyPageOrderBtn.addEventListener('click', async () => {
     if (!currentPdfBytes || currentPdfBytes.length === 0) {
         alert(translations[currentLanguage].noPdfData);
         return;
@@ -670,7 +671,8 @@ applyPageOrderBtn.addEventListener('click', async () => {
         console.error('페이지 순서 적용 오류:', error);
         alert(`페이지 순서 적용 중 오류가 발생했습니다: ${error.message || error}`);
     }
-});
+    });
+}
 
 // 페이지 순서 적용
 async function applyPageOrder(newOrder) {
@@ -1052,7 +1054,8 @@ async function copyImageFromCanvas(canvas, event) {
 }
 
 // PDF 분할
-splitBtn.addEventListener('click', async () => {
+if (splitBtn) {
+    splitBtn.addEventListener('click', async () => {
     console.log('=== 분할 버튼 클릭 ===');
     console.log('currentPdfBytes 직접 확인:', currentPdfBytes);
     console.log('currentPdfBytes 타입:', currentPdfBytes ? currentPdfBytes.constructor.name : 'null');
@@ -1182,10 +1185,12 @@ splitBtn.addEventListener('click', async () => {
         console.error('PDF 분할 오류:', error);
         alert(`PDF 분할 중 오류가 발생했습니다: ${error.message || error}`);
     }
-});
+    });
+}
 
 // 페이지 삭제
-deleteBtn.addEventListener('click', async () => {
+if (deleteBtn) {
+    deleteBtn.addEventListener('click', async () => {
     if (!currentPdfBytes || currentPdfBytes.length === 0) {
         alert(translations[currentLanguage].uploadFirst);
         return;
@@ -1258,35 +1263,45 @@ deleteBtn.addEventListener('click', async () => {
         console.error('페이지 삭제 오류:', error);
         alert(`페이지 삭제 중 오류가 발생했습니다: ${error.message || error}`);
     }
-});
+    });
+}
 
 // PDF 자르기 모달 열기
-splitPdfBtn.addEventListener('click', () => {
+if (splitPdfBtn) {
+    splitPdfBtn.addEventListener('click', () => {
     if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
         alert('PDF파일이 열려있지 않습니다.');
         return;
     }
-    splitPdfModal.style.display = 'flex';
-});
+    if (splitPdfModal) splitPdfModal.style.display = 'flex';
+    }
+}
 
 // PDF 자르기 모달 닫기
-closeSplitPdfModal.addEventListener('click', () => {
-    splitPdfModal.style.display = 'none';
-});
+if (closeSplitPdfModal) {
+    closeSplitPdfModal.addEventListener('click', () => {
+        if (splitPdfModal) splitPdfModal.style.display = 'none';
+    });
+}
 
-cancelSplitPdfBtn.addEventListener('click', () => {
-    splitPdfModal.style.display = 'none';
-});
+if (cancelSplitPdfBtn) {
+    cancelSplitPdfBtn.addEventListener('click', () => {
+        if (splitPdfModal) splitPdfModal.style.display = 'none';
+    });
+}
 
 // 모달 외부 클릭 시 닫기
-splitPdfModal.addEventListener('click', (e) => {
-    if (e.target === splitPdfModal) {
-        splitPdfModal.style.display = 'none';
-    }
-});
+if (splitPdfModal) {
+    splitPdfModal.addEventListener('click', (e) => {
+        if (e.target === splitPdfModal) {
+            splitPdfModal.style.display = 'none';
+        }
+    });
+}
 
 // PDF 자르기 실행
-executeSplitPdfBtn.addEventListener('click', async () => {
+if (executeSplitPdfBtn) {
+    executeSplitPdfBtn.addEventListener('click', async () => {
     const splitDirection = document.querySelector('input[name="splitDirection"]:checked').value;
     
     // 크롭 모드인 경우
@@ -1518,58 +1533,17 @@ executeSplitPdfBtn.addEventListener('click', async () => {
         console.error('PDF 자르기 오류:', error);
         alert(`PDF 자르기 중 오류가 발생했습니다: ${error.message || error}`);
     } finally {
-        executeSplitPdfBtn.disabled = false;
-        executeSplitPdfBtn.textContent = '확인';
-    }
-});
-
-// 페이지 회전하기 모달 열기
-if (rotatePdfBtn) {
-    rotatePdfBtn.addEventListener('click', () => {
-        if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
-            alert(translations[currentLanguage].pdfNotOpen);
-            return;
+        if (executeSplitPdfBtn) {
+            executeSplitPdfBtn.disabled = false;
+            executeSplitPdfBtn.textContent = '확인';
         }
-        rotatePdfModal.style.display = 'block';
-        
-        // 페이지 선택 라디오 버튼에 따라 입력 필드 표시/숨김
-        const pageSelectionRadios = document.querySelectorAll('input[name="rotatePageSelection"]');
-        const rotatePageInputs = document.getElementById('rotatePageInputs');
-        const rotatePageRange = document.getElementById('rotatePageRange');
-        
-        pageSelectionRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.value === 'all') {
-                    rotatePageRange.style.display = 'none';
-                } else {
-                    rotatePageRange.style.display = 'block';
-                    if (radio.value === 'range') {
-                        rotatePageRange.placeholder = '예: 1-3 또는 1,3,5';
-                    } else if (radio.value === 'specific') {
-                        rotatePageRange.placeholder = '예: 1,3,5';
-                    }
-                }
-            });
-        });
+    }
     });
 }
-
-// 페이지 회전하기 모달 닫기
-if (closeRotatePdfModal) {
-    closeRotatePdfModal.addEventListener('click', () => {
-        rotatePdfModal.style.display = 'none';
-    });
-}
-
-if (cancelRotatePdfBtn) {
-    cancelRotatePdfBtn.addEventListener('click', () => {
-        rotatePdfModal.style.display = 'none';
-    });
-}
-
 
 // PDF 다운로드
-downloadBtn.addEventListener('click', () => {
+if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
     if (!currentPdfBytes || currentPdfBytes.length === 0) {
         alert(translations[currentLanguage].noPdfToDownload);
         return;
@@ -1584,10 +1558,12 @@ downloadBtn.addEventListener('click', () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-});
+    });
+}
 
 // JPG로 다운로드
-downloadJpgBtn.addEventListener('click', async () => {
+if (downloadJpgBtn) {
+    downloadJpgBtn.addEventListener('click', async () => {
     if (!currentPdfDoc) {
         alert(translations[currentLanguage].noPdfToDownload);
         return;
@@ -1651,10 +1627,12 @@ downloadJpgBtn.addEventListener('click', async () => {
         downloadJpgBtn.textContent = '🖼️ JPG로 다운로드';
         alert(`JPG 다운로드 중 오류가 발생했습니다: ${error.message || error}`);
     }
-});
+    });
+}
 
 // 텍스트로 다운로드
-downloadTextBtn.addEventListener('click', async () => {
+if (downloadTextBtn) {
+    downloadTextBtn.addEventListener('click', async () => {
     if (!currentPdfDoc) {
         alert(translations[currentLanguage].noPdfToDownload);
         return;
@@ -1721,7 +1699,8 @@ downloadTextBtn.addEventListener('click', async () => {
         downloadTextBtn.textContent = '📝 텍스트로 다운로드';
         alert(`텍스트 다운로드 중 오류가 발생했습니다: ${error.message || error}`);
     }
-});
+    });
+}
 
 // 페이지 회전하기 모달 열기
 if (rotatePdfBtn) {
@@ -1958,23 +1937,30 @@ if (imageToPdfBtn) {
 }
 
 // 이미지로 PDF 만들기 모달 닫기
-closeImageToPdfModal.addEventListener('click', () => {
-    imageToPdfModal.style.display = 'none';
-});
+if (closeImageToPdfModal) {
+    closeImageToPdfModal.addEventListener('click', () => {
+        if (imageToPdfModal) imageToPdfModal.style.display = 'none';
+    });
+}
 
-cancelImageToPdfBtn.addEventListener('click', () => {
-    imageToPdfModal.style.display = 'none';
-});
+if (cancelImageToPdfBtn) {
+    cancelImageToPdfBtn.addEventListener('click', () => {
+        if (imageToPdfModal) imageToPdfModal.style.display = 'none';
+    });
+}
 
 // 모달 외부 클릭 시 닫기
-imageToPdfModal.addEventListener('click', (e) => {
-    if (e.target === imageToPdfModal) {
-        imageToPdfModal.style.display = 'none';
-    }
-});
+if (imageToPdfModal) {
+    imageToPdfModal.addEventListener('click', (e) => {
+        if (e.target === imageToPdfModal) {
+            imageToPdfModal.style.display = 'none';
+        }
+    });
+}
 
 // 이미지 파일 선택 시 정보 표시
-imageFiles.addEventListener('change', (e) => {
+if (imageFiles) {
+    imageFiles.addEventListener('change', (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) {
         imageFilesInfo.textContent = '';
@@ -2013,10 +1999,12 @@ imageFiles.addEventListener('change', (e) => {
         };
         reader.readAsDataURL(file);
     });
-});
+    });
+}
 
 // 이미지 업로드 및 PDF 생성
-uploadImagesBtn.addEventListener('click', async () => {
+if (uploadImagesBtn) {
+    uploadImagesBtn.addEventListener('click', async () => {
     const files = Array.from(imageFiles.files).filter(file => file.type.startsWith('image/'));
     
     if (files.length === 0) {
@@ -2161,57 +2149,71 @@ uploadImagesBtn.addEventListener('click', async () => {
         uploadImagesBtn.disabled = false;
         uploadImagesBtn.textContent = '업로드';
     }
-});
+    });
+}
 
 // PDF 합치기 모달 열기
-mergeBtn.addEventListener('click', () => {
+if (mergeBtn) {
+    mergeBtn.addEventListener('click', () => {
     mergeModal.style.display = 'flex';
     // 파일 입력 초기화
     mergeFile1.value = '';
     mergeFile2.value = '';
-    mergeFile1Info.textContent = '';
-    mergeFile2Info.textContent = '';
-});
+    if (mergeFile1Info) mergeFile1Info.textContent = '';
+    if (mergeFile2Info) mergeFile2Info.textContent = '';
+    }
+}
 
 // PDF 합치기 모달 닫기
-closeMergeModal.addEventListener('click', () => {
-    mergeModal.style.display = 'none';
-});
+if (closeMergeModal) {
+    closeMergeModal.addEventListener('click', () => {
+        if (mergeModal) mergeModal.style.display = 'none';
+    });
+}
 
-cancelMergeBtn.addEventListener('click', () => {
-    mergeModal.style.display = 'none';
-});
+if (cancelMergeBtn) {
+    cancelMergeBtn.addEventListener('click', () => {
+        if (mergeModal) mergeModal.style.display = 'none';
+    });
+}
 
 // 모달 외부 클릭 시 닫기
-mergeModal.addEventListener('click', (e) => {
-    if (e.target === mergeModal) {
-        mergeModal.style.display = 'none';
-    }
-});
+if (mergeModal) {
+    mergeModal.addEventListener('click', (e) => {
+        if (e.target === mergeModal) {
+            mergeModal.style.display = 'none';
+        }
+    });
+}
 
 // 파일 선택 시 정보 표시
-mergeFile1.addEventListener('change', (e) => {
+if (mergeFile1) {
+    mergeFile1.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         mergeFile1Info.textContent = `선택됨: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
         mergeFile1Info.style.color = '#28a745';
     } else {
-        mergeFile1Info.textContent = '';
+        if (mergeFile1Info) mergeFile1Info.textContent = '';
     }
-});
+    });
+}
 
-mergeFile2.addEventListener('change', (e) => {
+if (mergeFile2) {
+    mergeFile2.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         mergeFile2Info.textContent = `선택됨: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
         mergeFile2Info.style.color = '#28a745';
     } else {
-        mergeFile2Info.textContent = '';
+        if (mergeFile2Info) mergeFile2Info.textContent = '';
     }
-});
+    });
+}
 
 // PDF 합치기 실행
-executeMergeBtn.addEventListener('click', async () => {
+if (executeMergeBtn) {
+    executeMergeBtn.addEventListener('click', async () => {
     const file1 = mergeFile1.files[0];
     const file2 = mergeFile2.files[0];
 
@@ -2307,10 +2309,12 @@ executeMergeBtn.addEventListener('click', async () => {
         executeMergeBtn.disabled = false;
         executeMergeBtn.textContent = '합치기';
     }
-});
+    });
+}
 
 // 초기화
-resetBtn.addEventListener('click', () => {
+if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
     if (confirm('모든 작업을 초기화하시겠습니까?')) {
         currentPdfDoc = null;
         currentPdfBytes = null;
@@ -2330,7 +2334,8 @@ resetBtn.addEventListener('click', () => {
         downloadBtn.disabled = true;
         downloadJpgBtn.disabled = true;
         downloadTextBtn.disabled = true;
-        splitPdfBtn.disabled = true;
+        if (splitPdfBtn) splitPdfBtn.disabled = true;
     }
-});
+    });
+}
 
