@@ -14,7 +14,7 @@ let currentLanguage = detectLanguage();
 const translations = {
     ko: {
         // Header
-        title: "PDF 편집 도구 - PDF 분할, PDF 회전, PDF 자르기, PDF 합치기 무료 온라인 도구",
+        title: "Free PDF Editor",
         subtitle: "PDF 파일을 업로드하고 PDF 분할(Split), PDF 회전(Rotate), PDF 자르기(Crop), PDF 합치기(Merge), 페이지 삭제 등 다양한 PDF 편집 기능을 무료로 사용하세요",
         helpBtn: "❓ 사용법",
         
@@ -118,7 +118,7 @@ const translations = {
     },
     en: {
         // Header
-        title: "PDF Editor - Free Online PDF Split, Rotate, Crop, Merge Tool",
+        title: "Free PDF Editor",
         subtitle: "Upload PDF files and use various PDF editing features for free: PDF Split, PDF Rotate, PDF Crop, PDF Merge, page deletion, and more",
         helpBtn: "❓ Help",
         
