@@ -1,11 +1,394 @@
 // PDF.js 설정
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+// 언어 감지 및 다국어 지원
+const detectLanguage = () => {
+    const browserLang = navigator.language || navigator.userLanguage;
+    // 한국어가 아니면 영어로 설정
+    return browserLang.startsWith('ko') ? 'ko' : 'en';
+};
+
+let currentLanguage = detectLanguage();
+
+// 번역 텍스트 객체
+const translations = {
+    ko: {
+        // Header
+        title: "PDF 편집 도구 - PDF 분할, PDF 회전, PDF 자르기, PDF 합치기 무료 온라인 도구",
+        subtitle: "PDF 파일을 업로드하고 PDF 분할(Split), PDF 회전(Rotate), PDF 자르기(Crop), PDF 합치기(Merge), 페이지 삭제 등 다양한 PDF 편집 기능을 무료로 사용하세요",
+        helpBtn: "❓ 사용법",
+        
+        // Sections
+        fileUpload: "파일 업로드",
+        editTools: "편집 도구",
+        pdfPreview: "PDF 미리보기",
+        
+        // Page Order
+        pageOrderChange: "📑 페이지 순서 변경",
+        totalPages: "총 페이지:",
+        apply: "적용",
+        
+        // Image to PDF
+        imageToPdf: "🖼️ 이미지로 PDF 만들기",
+        imageToPdfBtn: "이미지로 PDF 만들기",
+        
+        // Split
+        pdfSplit: "✂️ PDF 분할",
+        splitFrom: "시작 페이지",
+        splitTo: "끝 페이지",
+        splitExecute: "분할 실행",
+        
+        // Crop
+        pdfCrop: "✂️ PDF 자르기",
+        pdfCropBtn: "🔲 PDF 자르기",
+        
+        // Merge
+        pdfMerge: "🔗 PDF 합치기",
+        pdfMergeBtn: "PDF 합치기",
+        
+        // Rotate
+        pageRotate: "🔄 페이지 회전하기",
+        pageRotateBtn: "페이지 회전하기",
+        
+        // Delete
+        pageDelete: "🗑️ 페이지 삭제",
+        deletePagePlaceholder: "삭제할 페이지 번호",
+        deletePageBtn: "페이지 삭제",
+        
+        // Actions
+        downloadPdf: "💾 PDF 다운로드",
+        downloadJpg: "🖼️ JPG로 다운로드",
+        downloadText: "📝 텍스트로 다운로드",
+        reset: "🔄 초기화",
+        
+        // File Upload
+        selectPdfFile: "PDF 파일 선택",
+        uploadPdf: "PDF 파일을 업로드하세요",
+        fileName: "파일명:",
+        fileSize: "크기:",
+        
+        // Modals
+        cropModalTitle: "✂️ PDF 자르기",
+        cropDirection: "자르기 방향 선택:",
+        cropHorizontal: "좌우 반으로 자르기",
+        cropVertical: "상하 반으로 자르기",
+        cropCustom: "크롭하기",
+        confirm: "확인",
+        cancel: "취소",
+        
+        rotateModalTitle: "🔄 페이지 회전하기",
+        rotatePageSelection: "회전할 페이지 선택:",
+        rotateAll: "전체 페이지",
+        rotateRange: "페이지 범위",
+        rotateSpecific: "특정 페이지",
+        rotateDirection: "회전 방향 선택:",
+        rotate90: "90도 (시계방향)",
+        rotate180: "180도",
+        rotate270: "270도 (반시계방향)",
+        apply: "적용",
+        
+        imageToPdfModalTitle: "🖼️ 이미지로 PDF 만들기",
+        selectImages: "이미지 파일 선택 (여러 개 선택 가능):",
+        upload: "업로드",
+        
+        mergeModalTitle: "🔗 PDF 합치기",
+        mergeFile1: "첫 번째 PDF 파일:",
+        mergeFile2: "두 번째 PDF 파일:",
+        merge: "합치기",
+        
+        helpModalTitle: "📖 사용법",
+        
+        // Alerts
+        pdfNotOpen: "PDF파일이 열려있지 않습니다.",
+        imagePdfOcr: "이미지PDF는 OCR을 통해 텍스트를 추출할 수 있습니다.",
+        libraryLoadError: "PDF 편집 라이브러리 로드에 실패했습니다. 페이지를 새로고침해주세요.",
+        pdfOnly: "PDF 파일만 업로드할 수 있습니다.",
+        loadError: "PDF 파일을 로드하는 중 오류가 발생했습니다.",
+        noPdfData: "PDF 데이터가 없습니다.",
+        uploadFirst: "먼저 PDF 파일을 업로드하세요.",
+        invalidPageRange: "올바른 페이지 범위를 입력하세요.",
+        pageExceeded: "총 페이지 수를 초과할 수 없습니다.",
+        invalidPageNumber: "올바른 페이지 번호를 입력하세요.",
+        lastPageCannotDelete: "마지막 페이지는 삭제할 수 없습니다.",
+        selectCropArea: "크롭할 영역을 선택하세요.",
+        noPdfToDownload: "다운로드할 PDF가 없습니다.",
+        selectTwoPdfs: "두 개의 PDF 파일을 모두 선택해주세요.",
+        selectImages: "이미지 파일을 선택해주세요.",
+        imageFilesOnly: "이미지 파일만 선택할 수 있습니다."
+    },
+    en: {
+        // Header
+        title: "PDF Editor - Free Online PDF Split, Rotate, Crop, Merge Tool",
+        subtitle: "Upload PDF files and use various PDF editing features for free: PDF Split, PDF Rotate, PDF Crop, PDF Merge, page deletion, and more",
+        helpBtn: "❓ Help",
+        
+        // Sections
+        fileUpload: "File Upload",
+        editTools: "Edit Tools",
+        pdfPreview: "PDF Preview",
+        
+        // Page Order
+        pageOrderChange: "📑 Reorder Pages",
+        totalPages: "Total Pages:",
+        apply: "Apply",
+        
+        // Image to PDF
+        imageToPdf: "🖼️ Create PDF from Images",
+        imageToPdfBtn: "Create PDF from Images",
+        
+        // Split
+        pdfSplit: "✂️ Split PDF",
+        splitFrom: "Start Page",
+        splitTo: "End Page",
+        splitExecute: "Split",
+        
+        // Crop
+        pdfCrop: "✂️ Crop PDF",
+        pdfCropBtn: "🔲 Crop PDF",
+        
+        // Merge
+        pdfMerge: "🔗 Merge PDF",
+        pdfMergeBtn: "Merge PDF",
+        
+        // Rotate
+        pageRotate: "🔄 Rotate Pages",
+        pageRotateBtn: "Rotate Pages",
+        
+        // Delete
+        pageDelete: "🗑️ Delete Page",
+        deletePagePlaceholder: "Page number to delete",
+        deletePageBtn: "Delete Page",
+        
+        // Actions
+        downloadPdf: "💾 Download PDF",
+        downloadJpg: "🖼️ Download as JPG",
+        downloadText: "📝 Download as Text",
+        reset: "🔄 Reset",
+        
+        // File Upload
+        selectPdfFile: "Select PDF File",
+        uploadPdf: "Upload a PDF file",
+        fileName: "File Name:",
+        fileSize: "Size:",
+        
+        // Modals
+        cropModalTitle: "✂️ Crop PDF",
+        cropDirection: "Select crop direction:",
+        cropHorizontal: "Split horizontally (left/right)",
+        cropVertical: "Split vertically (top/bottom)",
+        cropCustom: "Crop",
+        confirm: "Confirm",
+        cancel: "Cancel",
+        
+        rotateModalTitle: "🔄 Rotate Pages",
+        rotatePageSelection: "Select pages to rotate:",
+        rotateAll: "All Pages",
+        rotateRange: "Page Range",
+        rotateSpecific: "Specific Pages",
+        rotateDirection: "Select rotation direction:",
+        rotate90: "90° (Clockwise)",
+        rotate180: "180°",
+        rotate270: "270° (Counter-clockwise)",
+        apply: "Apply",
+        
+        imageToPdfModalTitle: "🖼️ Create PDF from Images",
+        selectImages: "Select image files (multiple selection available):",
+        upload: "Upload",
+        
+        mergeModalTitle: "🔗 Merge PDF",
+        mergeFile1: "First PDF file:",
+        mergeFile2: "Second PDF file:",
+        merge: "Merge",
+        
+        helpModalTitle: "📖 Help",
+        
+        // Alerts
+        pdfNotOpen: "PDF file is not open.",
+        imagePdfOcr: "Image PDFs can extract text via OCR.",
+        libraryLoadError: "Failed to load PDF editing library. Please refresh the page.",
+        pdfOnly: "Only PDF files can be uploaded.",
+        loadError: "An error occurred while loading the PDF file.",
+        noPdfData: "No PDF data available.",
+        uploadFirst: "Please upload a PDF file first.",
+        invalidPageRange: "Please enter a valid page range.",
+        pageExceeded: "Cannot exceed total number of pages.",
+        invalidPageNumber: "Please enter a valid page number.",
+        lastPageCannotDelete: "The last page cannot be deleted.",
+        selectCropArea: "Please select an area to crop.",
+        noPdfToDownload: "No PDF to download.",
+        selectTwoPdfs: "Please select both PDF files.",
+        selectImages: "Please select image files.",
+        imageFilesOnly: "Only image files can be selected."
+    }
+};
+
+// 언어 변경 함수
+const changeLanguage = (lang) => {
+    currentLanguage = lang;
+    document.documentElement.lang = lang;
+    
+    const t = translations[lang];
+    
+    // Header
+    document.querySelector('header h1').textContent = t.title;
+    document.querySelector('header p').textContent = t.subtitle;
+    document.querySelector('#helpBtn').textContent = t.helpBtn;
+    
+    // Sections
+    document.querySelector('.upload-section h2').textContent = t.fileUpload;
+    document.querySelector('.tools-section h2').textContent = t.editTools;
+    document.querySelector('.preview-section h2').textContent = t.pdfPreview;
+    
+    // Page Order
+    const pageOrderGroup = document.querySelector('.tool-group h3');
+    if (pageOrderGroup && pageOrderGroup.textContent.includes('페이지 순서')) {
+        pageOrderGroup.textContent = t.pageOrderChange;
+    }
+    const totalPagesLabel = document.querySelector('.page-info span');
+    if (totalPagesLabel) {
+        totalPagesLabel.innerHTML = `<strong>${t.totalPages}</strong> <strong id="totalPages">0</strong>`;
+    }
+    const applyBtn = document.querySelector('#applyPageOrderBtn');
+    if (applyBtn) applyBtn.textContent = t.apply;
+    
+    // Image to PDF
+    const imageToPdfGroup = document.querySelectorAll('.tool-group h3')[1];
+    if (imageToPdfGroup) imageToPdfGroup.textContent = t.imageToPdf;
+    const imageToPdfBtn = document.querySelector('#imageToPdfBtn');
+    if (imageToPdfBtn) imageToPdfBtn.textContent = t.imageToPdfBtn;
+    
+    // Split
+    const splitGroup = document.querySelectorAll('.tool-group h3')[2];
+    if (splitGroup) splitGroup.textContent = t.pdfSplit;
+    const splitFromInput = document.querySelector('#splitFrom');
+    if (splitFromInput) splitFromInput.placeholder = t.splitFrom;
+    const splitToInput = document.querySelector('#splitTo');
+    if (splitToInput) splitToInput.placeholder = t.splitTo;
+    const splitBtn = document.querySelector('#splitBtn');
+    if (splitBtn) splitBtn.textContent = t.splitExecute;
+    
+    // Crop
+    const cropGroup = document.querySelectorAll('.tool-group h3')[3];
+    if (cropGroup) cropGroup.textContent = t.pdfCrop;
+    const cropBtn = document.querySelector('#splitPdfBtn');
+    if (cropBtn) cropBtn.textContent = t.pdfCropBtn;
+    
+    // Merge
+    const mergeGroup = document.querySelectorAll('.tool-group h3')[4];
+    if (mergeGroup) mergeGroup.textContent = t.pdfMerge;
+    const mergeBtn = document.querySelector('#mergeBtn');
+    if (mergeBtn) mergeBtn.textContent = t.pdfMergeBtn;
+    
+    // Rotate
+    const rotateGroup = document.querySelectorAll('.tool-group h3')[5];
+    if (rotateGroup) rotateGroup.textContent = t.pageRotate;
+    const rotateBtn = document.querySelector('#rotatePdfBtn');
+    if (rotateBtn) rotateBtn.textContent = t.pageRotateBtn;
+    
+    // Delete
+    const deleteGroup = document.querySelectorAll('.tool-group h3')[6];
+    if (deleteGroup) deleteGroup.textContent = t.pageDelete;
+    const deletePageInput = document.querySelector('#deletePage');
+    if (deletePageInput) deletePageInput.placeholder = t.deletePagePlaceholder;
+    const deleteBtn = document.querySelector('#deleteBtn');
+    if (deleteBtn) deleteBtn.textContent = t.deletePageBtn;
+    
+    // Action Buttons
+    const downloadPdfBtn = document.querySelector('#downloadBtn');
+    if (downloadPdfBtn) downloadPdfBtn.textContent = t.downloadPdf;
+    const downloadJpgBtn = document.querySelector('#downloadJpgBtn');
+    if (downloadJpgBtn) downloadJpgBtn.textContent = t.downloadJpg;
+    const downloadTextBtn = document.querySelector('#downloadTextBtn');
+    if (downloadTextBtn) downloadTextBtn.textContent = t.downloadText;
+    const resetBtn = document.querySelector('#resetBtn');
+    if (resetBtn) resetBtn.textContent = t.reset;
+    
+    // File Upload
+    const fileLabel = document.querySelector('.file-label span:last-child');
+    if (fileLabel) fileLabel.textContent = t.selectPdfFile;
+    const emptyState = document.querySelector('.empty-state p');
+    if (emptyState) emptyState.textContent = `📄 ${t.uploadPdf}`;
+    
+    // Modals
+    const cropModalTitle = document.querySelector('#splitPdfModal h2');
+    if (cropModalTitle) cropModalTitle.textContent = t.cropModalTitle;
+    const cropDirectionLabel = document.querySelector('#splitPdfModal label');
+    if (cropDirectionLabel && cropDirectionLabel.textContent.includes('자르기 방향')) {
+        cropDirectionLabel.textContent = t.cropDirection;
+    }
+    const cropOptions = document.querySelectorAll('#splitPdfModal input[type="radio"]');
+    if (cropOptions.length >= 3) {
+        cropOptions[0].nextSibling.textContent = t.cropHorizontal;
+        cropOptions[1].nextSibling.textContent = t.cropVertical;
+        cropOptions[2].nextSibling.textContent = t.cropCustom;
+    }
+    const confirmBtn = document.querySelector('#executeSplitPdfBtn');
+    if (confirmBtn) confirmBtn.textContent = t.confirm;
+    const cancelBtn = document.querySelector('#cancelSplitPdfBtn');
+    if (cancelBtn) cancelBtn.textContent = t.cancel;
+    
+    const rotateModalTitle = document.querySelector('#rotatePdfModal h2');
+    if (rotateModalTitle) rotateModalTitle.textContent = t.rotateModalTitle;
+    const rotatePageSelectionLabel = document.querySelector('#rotatePdfModal .input-group label');
+    if (rotatePageSelectionLabel && rotatePageSelectionLabel.textContent.includes('회전할 페이지')) {
+        rotatePageSelectionLabel.textContent = t.rotatePageSelection;
+    }
+    const rotateOptions = document.querySelectorAll('#rotatePdfModal input[type="radio"][name="rotatePageSelection"]');
+    if (rotateOptions.length >= 3) {
+        rotateOptions[0].nextSibling.textContent = t.rotateAll;
+        rotateOptions[1].nextSibling.textContent = t.rotateRange;
+        rotateOptions[2].nextSibling.textContent = t.rotateSpecific;
+    }
+    const rotateDirectionLabel = document.querySelectorAll('#rotatePdfModal .input-group label')[1];
+    if (rotateDirectionLabel && rotateDirectionLabel.textContent.includes('회전 방향')) {
+        rotateDirectionLabel.textContent = t.rotateDirection;
+    }
+    const rotateDirectionOptions = document.querySelectorAll('#rotatePdfModal input[type="radio"][name="rotateDirection"]');
+    if (rotateDirectionOptions.length >= 3) {
+        rotateDirectionOptions[0].nextSibling.textContent = t.rotate90;
+        rotateDirectionOptions[1].nextSibling.textContent = t.rotate180;
+        rotateDirectionOptions[2].nextSibling.textContent = t.rotate270;
+    }
+    const executeRotateBtn = document.querySelector('#executeRotatePdfBtn');
+    if (executeRotateBtn) executeRotateBtn.textContent = t.apply;
+    const cancelRotateBtn = document.querySelector('#cancelRotatePdfBtn');
+    if (cancelRotateBtn) cancelRotateBtn.textContent = t.cancel;
+    
+    const imageToPdfModalTitle = document.querySelector('#imageToPdfModal h2');
+    if (imageToPdfModalTitle) imageToPdfModalTitle.textContent = t.imageToPdfModalTitle;
+    const selectImagesLabel = document.querySelector('#imageToPdfModal label');
+    if (selectImagesLabel) selectImagesLabel.textContent = t.selectImages;
+    const uploadImagesBtn = document.querySelector('#uploadImagesBtn');
+    if (uploadImagesBtn) uploadImagesBtn.textContent = t.upload;
+    const cancelImageToPdfBtn = document.querySelector('#cancelImageToPdfBtn');
+    if (cancelImageToPdfBtn) cancelImageToPdfBtn.textContent = t.cancel;
+    
+    const mergeModalTitle = document.querySelector('#mergeModal h2');
+    if (mergeModalTitle) mergeModalTitle.textContent = t.mergeModalTitle;
+    const mergeFile1Label = document.querySelector('#mergeModal label[for="mergeFile1"]');
+    if (mergeFile1Label) mergeFile1Label.textContent = t.mergeFile1;
+    const mergeFile2Label = document.querySelector('#mergeModal label[for="mergeFile2"]');
+    if (mergeFile2Label) mergeFile2Label.textContent = t.mergeFile2;
+    const executeMergeBtn = document.querySelector('#executeMergeBtn');
+    if (executeMergeBtn) executeMergeBtn.textContent = t.merge;
+    const cancelMergeBtn = document.querySelector('#cancelMergeBtn');
+    if (cancelMergeBtn) cancelMergeBtn.textContent = t.cancel;
+    
+    const helpModalTitle = document.querySelector('#helpModal h2');
+    if (helpModalTitle) helpModalTitle.textContent = t.helpModalTitle;
+};
+
+// 페이지 로드 시 언어 자동 감지 및 적용
+document.addEventListener('DOMContentLoaded', () => {
+    changeLanguage(currentLanguage);
+});
+
 // 라이브러리 로드 확인
 window.addEventListener('load', () => {
     if (typeof PDFLib === 'undefined') {
         console.error('PDFLib이 로드되지 않았습니다.');
-        alert('PDF 편집 라이브러리 로드에 실패했습니다. 페이지를 새로고침해주세요.');
+        const t = translations[currentLanguage];
+        alert(t.libraryLoadError);
     } else {
         console.log('PDFLib이 성공적으로 로드되었습니다.');
     }
@@ -86,7 +469,7 @@ if (!pdfInput) {
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
-        alert('PDF 파일만 업로드할 수 있습니다.');
+        alert(translations[currentLanguage].pdfOnly);
         return;
     }
 
@@ -96,7 +479,8 @@ if (!pdfInput) {
     pdfPages = [];
     
     // UI 초기화
-    pdfPreview.innerHTML = '<div class="empty-state"><p>📄 PDF 파일을 업로드하세요</p></div>';
+    const t = translations[currentLanguage];
+    pdfPreview.innerHTML = `<div class="empty-state"><p>📄 ${t.uploadPdf}</p></div>`;
     pageList.innerHTML = '';
     totalPages.textContent = '0';
     splitFrom.value = '';
@@ -107,9 +491,10 @@ if (!pdfInput) {
     downloadTextBtn.disabled = true;
     applyPageOrderBtn.style.display = 'none';
 
+    const t = translations[currentLanguage];
     fileInfo.innerHTML = `
-        <strong>파일명:</strong> ${file.name}<br>
-        <strong>크기:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB
+        <strong>${t.fileName}</strong> ${file.name}<br>
+        <strong>${t.fileSize}</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB
     `;
 
     const arrayBuffer = await file.arrayBuffer();
@@ -163,7 +548,7 @@ if (!pdfInput) {
         }
     } catch (error) {
         console.error('PDF 로드 오류:', error);
-        alert('PDF 파일을 로드하는 중 오류가 발생했습니다.');
+        alert(translations[currentLanguage].loadError);
     }
     });
 }
@@ -267,7 +652,7 @@ function checkPageOrderChanged() {
 // 적용 버튼 클릭 시 페이지 순서 변경
 applyPageOrderBtn.addEventListener('click', async () => {
     if (!currentPdfBytes || currentPdfBytes.length === 0) {
-        alert('PDF 데이터가 없습니다.');
+        alert(translations[currentLanguage].noPdfData);
         return;
     }
 
@@ -290,7 +675,7 @@ applyPageOrderBtn.addEventListener('click', async () => {
 // 페이지 순서 적용
 async function applyPageOrder(newOrder) {
     if (!currentPdfBytes || currentPdfBytes.length === 0) {
-        alert('PDF 데이터가 없습니다.');
+        alert(translations[currentLanguage].noPdfData);
         return;
     }
 
@@ -477,7 +862,7 @@ async function renderPdfPreview() {
 // 크롭 적용 함수
 async function applyCrop() {
     if (!cropSelection) {
-        alert('크롭할 영역을 선택하세요.');
+        alert(translations[currentLanguage].selectCropArea);
         return;
     }
     
@@ -689,12 +1074,12 @@ splitBtn.addEventListener('click', async () => {
     const to = parseInt(splitTo.value);
 
     if (!from || !to || from < 1 || to < 1 || from > to) {
-        alert('올바른 페이지 범위를 입력하세요.');
+        alert(translations[currentLanguage].invalidPageRange);
         return;
     }
 
     if (to > currentPdfDoc.numPages) {
-        alert(`총 페이지 수(${currentPdfDoc.numPages})를 초과할 수 없습니다.`);
+        alert(`${translations[currentLanguage].pageExceeded} (${currentPdfDoc.numPages})`);
         return;
     }
 
@@ -802,19 +1187,19 @@ splitBtn.addEventListener('click', async () => {
 // 페이지 삭제
 deleteBtn.addEventListener('click', async () => {
     if (!currentPdfBytes || currentPdfBytes.length === 0) {
-        alert('먼저 PDF 파일을 업로드하세요.');
+        alert(translations[currentLanguage].uploadFirst);
         return;
     }
 
     const pageNum = parseInt(deletePage.value);
 
     if (!pageNum || pageNum < 1 || pageNum > currentPdfDoc.numPages) {
-        alert('올바른 페이지 번호를 입력하세요.');
+        alert(translations[currentLanguage].invalidPageNumber);
         return;
     }
 
     if (currentPdfDoc.numPages === 1) {
-        alert('마지막 페이지는 삭제할 수 없습니다.');
+        alert(translations[currentLanguage].lastPageCannotDelete);
         return;
     }
 
@@ -1142,7 +1527,7 @@ executeSplitPdfBtn.addEventListener('click', async () => {
 if (rotatePdfBtn) {
     rotatePdfBtn.addEventListener('click', () => {
         if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
-            alert('PDF파일이 열려있지 않습니다.');
+            alert(translations[currentLanguage].pdfNotOpen);
             return;
         }
         rotatePdfModal.style.display = 'block';
@@ -1186,7 +1571,7 @@ if (cancelRotatePdfBtn) {
 // PDF 다운로드
 downloadBtn.addEventListener('click', () => {
     if (!currentPdfBytes || currentPdfBytes.length === 0) {
-        alert('다운로드할 PDF가 없습니다.');
+        alert(translations[currentLanguage].noPdfToDownload);
         return;
     }
 
@@ -1204,7 +1589,7 @@ downloadBtn.addEventListener('click', () => {
 // JPG로 다운로드
 downloadJpgBtn.addEventListener('click', async () => {
     if (!currentPdfDoc) {
-        alert('다운로드할 PDF가 없습니다.');
+        alert(translations[currentLanguage].noPdfToDownload);
         return;
     }
 
@@ -1271,7 +1656,7 @@ downloadJpgBtn.addEventListener('click', async () => {
 // 텍스트로 다운로드
 downloadTextBtn.addEventListener('click', async () => {
     if (!currentPdfDoc) {
-        alert('다운로드할 PDF가 없습니다.');
+        alert(translations[currentLanguage].noPdfToDownload);
         return;
     }
 
@@ -1311,7 +1696,7 @@ downloadTextBtn.addEventListener('click', async () => {
         if (!hasText || !allText.trim()) {
             downloadTextBtn.disabled = false;
             downloadTextBtn.textContent = '📝 텍스트로 다운로드';
-            alert('이미지PDF는 OCR을 통해 텍스트를 추출할 수 있습니다.');
+            alert(translations[currentLanguage].imagePdfOcr);
             return;
         }
         
@@ -1342,7 +1727,7 @@ downloadTextBtn.addEventListener('click', async () => {
 if (rotatePdfBtn) {
     rotatePdfBtn.addEventListener('click', () => {
         if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
-            alert('PDF파일이 열려있지 않습니다.');
+            alert(translations[currentLanguage].pdfNotOpen);
             return;
         }
         rotatePdfModal.style.display = 'block';
@@ -1386,7 +1771,7 @@ if (cancelRotatePdfBtn) {
 if (executeRotatePdfBtn) {
     executeRotatePdfBtn.addEventListener('click', async () => {
         if (!currentPdfDoc || !currentPdfBytes || currentPdfBytes.length === 0) {
-            alert('PDF 데이터가 없습니다.');
+            alert(translations[currentLanguage].noPdfData);
             return;
         }
 
@@ -1601,7 +1986,7 @@ imageFiles.addEventListener('change', (e) => {
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
     
     if (imageFiles.length === 0) {
-        alert('이미지 파일만 선택할 수 있습니다.');
+        alert(translations[currentLanguage].imageFilesOnly);
         e.target.value = '';
         return;
     }
@@ -1635,7 +2020,7 @@ uploadImagesBtn.addEventListener('click', async () => {
     const files = Array.from(imageFiles.files).filter(file => file.type.startsWith('image/'));
     
     if (files.length === 0) {
-        alert('이미지 파일을 선택해주세요.');
+        alert(translations[currentLanguage].selectImages);
         return;
     }
 
@@ -1831,7 +2216,7 @@ executeMergeBtn.addEventListener('click', async () => {
     const file2 = mergeFile2.files[0];
 
     if (!file1 || !file2) {
-        alert('두 개의 PDF 파일을 모두 선택해주세요.');
+        alert(translations[currentLanguage].selectTwoPdfs);
         return;
     }
 
@@ -1935,7 +2320,8 @@ resetBtn.addEventListener('click', () => {
         fileInfo.innerHTML = '';
         totalPages.textContent = '0';
         pageList.innerHTML = '';
-        pdfPreview.innerHTML = '<div class="empty-state"><p>📄 PDF 파일을 업로드하세요</p></div>';
+        const t = translations[currentLanguage];
+        pdfPreview.innerHTML = `<div class="empty-state"><p>📄 ${t.uploadPdf}</p></div>`;
         
         splitFrom.value = '';
         splitTo.value = '';
