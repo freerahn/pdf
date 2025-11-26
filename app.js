@@ -1,6 +1,503 @@
 // PDF.js 설정
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+// Help 모달 다국어 지원
+let helpCurrentLang = 'en';
+
+const helpTranslations = {
+    en: {
+        title: "📖 Help",
+        fileUpload: {
+            title: "📁 File Upload",
+            description: "Upload a PDF file to start editing.",
+            items: [
+                "Click the \"Select PDF File\" button in the top left.",
+                "Select the PDF file you want to edit.",
+                "Once uploaded, PDF pages will be displayed in the preview area on the right.",
+                "File information (file name, size) and total page count will be displayed on the left.",
+                "Uploading a new PDF file will reset any existing edits."
+            ]
+        },
+        reorderPages: {
+            title: "📑 Reorder Pages",
+            description: "You can change the order of PDF pages by dragging and dropping.",
+            items: [
+                "In the \"Reorder Pages\" section on the left, find the handle icon (☰) next to each page number.",
+                "Click and drag the handle of the page you want to move to the desired position.",
+                "For example, to move page 1 to position 3, drag page 1's handle to position 3.",
+                "After changing the order, an \"Apply\" button will appear.",
+                "Click the \"Apply\" button to apply the new order to the PDF and update the preview on the right.",
+                "Note: Page numbers will not change until you click \"Apply\". The changes are only applied after clicking \"Apply\"."
+            ]
+        },
+        createPdfFromImages: {
+            title: "🖼️ Create PDF from Images",
+            description: "You can convert multiple image files into a single PDF file.",
+            items: [
+                "Click the \"Create PDF from Images\" button to open a modal window.",
+                "In the modal, click \"Select Files\" to choose image files. (Multiple selection available)",
+                "Supported image formats: JPG, PNG, GIF, BMP, and other common image formats",
+                "The selected image file list will be displayed, and you can preview each image.",
+                "Click the \"Upload\" button to convert the selected images into PDF pages in order.",
+                "The converted PDF will be displayed in the preview area on the right and can be edited immediately.",
+                "The image order will become the PDF page order."
+            ]
+        },
+        splitPdf: {
+            title: "✂️ Split PDF",
+            description: "You can extract a specific page range from a PDF file to create a new PDF file.",
+            items: [
+                "In the \"Split PDF\" section on the left, enter the start page and end page.",
+                "For example, to split pages 3 to 10, enter 3 in the start page and 10 in the end page.",
+                "Click the \"Split\" button to create a new PDF containing only the selected page range.",
+                "The split PDF will be displayed in the preview area on the right, replacing the original PDF.",
+                "Note: Split operations cannot be undone, so download the original file first if you want to preserve it.",
+                "After splitting, page numbers will restart from 1."
+            ]
+        },
+        cropPdf: {
+            title: "✂️ Crop PDF",
+            description: "You can crop PDF pages or extract specific areas. There are three methods.",
+            items: [
+                "<strong>Split horizontally (left/right)</strong>:",
+                "Click the \"Crop PDF\" button and select the \"Split horizontally (left/right)\" option.",
+                "Each page will be divided left and right at the center.",
+                "For example, if there was originally 1 page, the left half becomes page 1 and the right half becomes page 2.",
+                "This applies to all pages equally.",
+                "<strong>Split vertically (top/bottom)</strong>:",
+                "Click the \"Crop PDF\" button and select the \"Split vertically (top/bottom)\" option.",
+                "Each page will be divided top and bottom at the center.",
+                "For example, if there was originally 1 page, the top half becomes page 1 and the bottom half becomes page 2.",
+                "This applies to all pages equally.",
+                "<strong>Crop</strong>:",
+                "Click the \"Crop PDF\" button, select the \"Crop\" option, and click \"Confirm\".",
+                "Drag your mouse in the PDF preview area on the right to select the desired area.",
+                "The selected area will be displayed with a blue dashed line.",
+                "After selecting the area, click the \"✂️ Apply Crop\" button that appears in the top right.",
+                "The selected area will be applied to all pages at the same position.",
+                "For example, if you select the top-left area on page 1, the same position on all pages will be cropped.",
+                "Crop operations cannot be undone, so select carefully."
+            ]
+        },
+        mergePdf: {
+            title: "🔗 Merge PDF",
+            description: "You can merge two PDF files into one.",
+            items: [
+                "Click the \"Merge PDF\" button to open a modal window.",
+                "In the modal, select the first PDF file and the second PDF file.",
+                "The selected file information (file name, size) will be displayed.",
+                "Click the \"Merge\" button to merge the two PDF files into one.",
+                "The merged PDF will have the pages from the first PDF followed by the pages from the second PDF.",
+                "For example, if the first PDF has 5 pages and the second PDF has 3 pages, the merged PDF will have 8 pages total.",
+                "The merged PDF will be displayed in the preview area on the right and can be edited immediately.",
+                "Note: After merging, the original PDFs will be replaced, so download them first if needed."
+            ]
+        },
+        rotatePages: {
+            title: "🔄 Rotate Pages",
+            description: "You can rotate PDF pages by 90°, 180°, or 270°.",
+            items: [
+                "Click the \"Rotate Pages\" button to open a modal window.",
+                "Select pages to rotate:",
+                "<strong>All Pages</strong>: Rotates all pages in the PDF.",
+                "<strong>Page Range</strong>: Rotates a specific range of pages. e.g., \"1-5\" (pages 1 to 5), \"3-7\" (pages 3 to 7)",
+                "<strong>Specific Pages</strong>: Select individual pages to rotate. e.g., \"1,3,5\" (pages 1, 3, 5), \"2,4,6,8\" (pages 2, 4, 6, 8)",
+                "If you select page range or specific pages, enter page numbers in the input field:",
+                "Range input: \"1-3\" (pages 1 to 3), \"5-10\" (pages 5 to 10)",
+                "Individual page input: \"1,3,5\" (comma-separated), \"2,4,6,8\"",
+                "Mixed input: \"1-3,5,7-9\" (combining ranges and individual pages)",
+                "Select rotation direction:",
+                "<strong>90° (Clockwise)</strong>: Rotates the page 90° to the right.",
+                "<strong>180°</strong>: Rotates the page 180° (flips it).",
+                "<strong>270° (Counter-clockwise)</strong>: Rotates the page 90° to the left (or 270° to the right).",
+                "Click the \"Apply\" button to rotate the selected pages.",
+                "Rotations are cumulative. For example, applying 90° rotation twice results in 180° rotation.",
+                "The rotated PDF will be immediately reflected in the preview area on the right."
+            ]
+        },
+        deletePage: {
+            title: "🗑️ Delete Page",
+            description: "You can delete specific pages from a PDF.",
+            items: [
+                "In the \"Delete Page\" section on the left, enter the page number to delete.",
+                "For example, to delete page 5, enter \"5\".",
+                "Click the \"Delete Page\" button to delete the specified page.",
+                "After deletion, the remaining page numbers will be automatically renumbered.",
+                "For example, if you delete page 5, the original page 6 becomes page 5, and page 7 becomes page 6.",
+                "Note: Deletion operations cannot be undone, so proceed carefully.",
+                "To delete multiple pages, delete them one at a time or use the PDF Split feature."
+            ]
+        },
+        downloadPdf: {
+            title: "💾 Download PDF",
+            description: "You can save the edited PDF file to your computer.",
+            items: [
+                "After completing all editing operations, click the \"Download PDF\" button.",
+                "The file will be automatically downloaded with the filename format \"edited_[timestamp].pdf\".",
+                "The downloaded file will be saved to your browser's default download folder.",
+                "Before downloading, make sure all edits are reflected in the PDF.",
+                "Note: The downloaded file is separate from the original, so the original file remains unchanged."
+            ]
+        },
+        downloadJpg: {
+            title: "🖼️ Download as JPG",
+            description: "You can convert each page of the PDF into high-resolution JPG image files and download them.",
+            items: [
+                "Click the \"Download as JPG\" button to convert each page of the PDF into individual JPG files.",
+                "Each page will be downloaded in the format \"page_1.jpg\", \"page_2.jpg\".",
+                "Images are converted at high resolution, so the image quality is excellent.",
+                "The conversion process will proceed, and it may take time if there are many pages.",
+                "Downloaded JPG files can be used in PDF editing, image editing programs, etc.",
+                "Note: PDF text is converted to images, so text cannot be directly edited."
+            ]
+        },
+        downloadText: {
+            title: "📝 Download as Text",
+            description: "You can extract text from a PDF and download it as a TXT file.",
+            items: [
+                "Click the \"Download as Text\" button to extract all text from the PDF.",
+                "The extracted text will be downloaded as a file in the format \"pdf_text_[timestamp].txt\".",
+                "Text from each page will be separated and displayed in the format \"=== Page 1 ===\".",
+                "For image-based PDFs with no text, a warning message \"Image PDFs can extract text via OCR.\" will be displayed.",
+                "For image-based PDFs, text extraction is not possible, and OCR (Optical Character Recognition) tools must be used.",
+                "Extracted text can be opened and edited in Notepad, word processors, etc.",
+                "Text format is preserved, but layout or formatting is not retained."
+            ]
+        },
+        reset: {
+            title: "🔄 Reset",
+            description: "Cancels all edits and returns to the initial state.",
+            items: [
+                "Click the \"Reset\" button to cancel all editing operations.",
+                "The PDF preview, page list, and all editing content will be reset.",
+                "Note: Reset operations cannot be undone. Download any necessary content before resetting.",
+                "After resetting, you can upload a new PDF file or start other operations."
+            ]
+        },
+        usefulTips: {
+            title: "💡 Useful Tips",
+            items: [
+                "It is recommended to backup or download the original PDF file before working on it.",
+                "You can perform multiple operations in sequence. For example, you can rotate pages and then split them, or merge them and then change the order.",
+                "Page numbers start from 1.",
+                "For large PDF files, processing may take some time.",
+                "Closing the browser will not save your edits, so be sure to download after completing your work.",
+                "PDF (Portable Document Format) is a format focused on preserving documents in their final output form. Unlike fluid documents like Word or HTML, \"free\" editing of text is complex and inaccurate, so this functionality has not been added. Please keep this in mind."
+            ]
+        }
+    },
+    ko: {
+        title: "📖 사용법",
+        fileUpload: {
+            title: "📁 파일 업로드",
+            description: "PDF 파일을 업로드하여 편집을 시작할 수 있습니다.",
+            items: [
+                "좌측 상단의 \"PDF 파일 선택\" 버튼을 클릭하세요.",
+                "편집하고 싶은 PDF 파일을 선택하세요.",
+                "파일이 업로드되면 우측 미리보기 영역에 PDF 페이지들이 표시됩니다.",
+                "파일 정보(파일명, 크기)와 총 페이지 수가 좌측에 표시됩니다.",
+                "새로운 PDF 파일을 업로드하면 기존 편집 내용은 초기화됩니다."
+            ]
+        },
+        reorderPages: {
+            title: "📑 페이지 순서 변경",
+            description: "PDF 페이지의 순서를 드래그 앤 드롭으로 변경할 수 있습니다.",
+            items: [
+                "좌측 \"페이지 순서 변경\" 섹션에서 각 페이지 번호 옆에 있는 핸들 아이콘(☰)을 확인하세요.",
+                "변경하고 싶은 페이지의 핸들을 마우스로 클릭하고 드래그하여 원하는 위치로 이동하세요.",
+                "예를 들어, 1번 페이지를 3번 위치로 이동하려면 1번 페이지의 핸들을 드래그하여 3번 위치에 놓으세요.",
+                "순서를 변경한 후에는 \"적용\" 버튼이 나타납니다.",
+                "\"적용\" 버튼을 클릭하면 변경된 순서가 PDF에 반영되고, 우측 미리보기도 업데이트됩니다.",
+                "주의: \"적용\" 버튼을 클릭하기 전까지는 페이지 번호가 변경되지 않으며, 실제 반영은 \"적용\" 버튼 클릭 후에 이루어집니다."
+            ]
+        },
+        createPdfFromImages: {
+            title: "🖼️ 이미지로 PDF 만들기",
+            description: "여러 이미지 파일을 하나의 PDF 파일로 변환할 수 있습니다.",
+            items: [
+                "\"이미지로 PDF 만들기\" 버튼을 클릭하면 모달 창이 열립니다.",
+                "모달 창에서 \"파일 선택\" 버튼을 클릭하여 이미지 파일들을 선택하세요. (여러 개 선택 가능)",
+                "지원되는 이미지 형식: JPG, PNG, GIF, BMP 등 일반적인 이미지 형식",
+                "선택한 이미지 파일 목록이 표시되며, 각 이미지의 미리보기를 확인할 수 있습니다.",
+                "\"업로드\" 버튼을 클릭하면 선택한 이미지들이 순서대로 PDF 페이지로 변환됩니다.",
+                "변환된 PDF는 우측 미리보기 영역에 표시되며, 즉시 편집할 수 있습니다.",
+                "이미지 순서는 선택한 순서대로 PDF 페이지가 됩니다."
+            ]
+        },
+        splitPdf: {
+            title: "✂️ PDF 분할",
+            description: "PDF 파일에서 특정 페이지 범위를 추출하여 새로운 PDF 파일로 만들 수 있습니다.",
+            items: [
+                "좌측 \"PDF 분할\" 섹션에서 시작 페이지와 끝 페이지를 입력하세요.",
+                "예를 들어, 3페이지부터 10페이지까지 분할하려면 시작 페이지에 3, 끝 페이지에 10을 입력하세요.",
+                "\"분할 실행\" 버튼을 클릭하면 선택한 페이지 범위만 포함된 새로운 PDF가 생성됩니다.",
+                "분할된 PDF는 우측 미리보기 영역에 표시되며, 원본 PDF는 대체됩니다.",
+                "주의: 분할 작업은 되돌릴 수 없으므로, 원본 파일을 보존하려면 먼저 다운로드하세요.",
+                "분할 후에는 페이지 번호가 1부터 다시 시작됩니다."
+            ]
+        },
+        cropPdf: {
+            title: "✂️ PDF 자르기",
+            description: "PDF 페이지를 자르거나 특정 영역만 추출할 수 있습니다. 세 가지 방법이 있습니다.",
+            items: [
+                "<strong>좌우 반으로 자르기</strong>:",
+                "\"PDF 자르기\" 버튼을 클릭하고 \"좌우 반으로 자르기\" 옵션을 선택하세요.",
+                "각 페이지가 중앙을 기준으로 좌우로 나뉩니다.",
+                "예를 들어, 원래 1페이지가 있었다면 왼쪽 절반이 1페이지, 오른쪽 절반이 2페이지가 됩니다.",
+                "모든 페이지에 동일하게 적용됩니다.",
+                "<strong>상하 반으로 자르기</strong>:",
+                "\"PDF 자르기\" 버튼을 클릭하고 \"상하 반으로 자르기\" 옵션을 선택하세요.",
+                "각 페이지가 중앙을 기준으로 상하로 나뉩니다.",
+                "예를 들어, 원래 1페이지가 있었다면 위쪽 절반이 1페이지, 아래쪽 절반이 2페이지가 됩니다.",
+                "모든 페이지에 동일하게 적용됩니다.",
+                "<strong>크롭하기</strong>:",
+                "\"PDF 자르기\" 버튼을 클릭하고 \"크롭하기\" 옵션을 선택한 후 \"확인\" 버튼을 클릭하세요.",
+                "우측 PDF 미리보기 영역에서 마우스를 드래그하여 원하는 영역을 선택하세요.",
+                "선택한 영역이 파란색 점선으로 표시됩니다.",
+                "영역 선택 후 우측 상단에 나타나는 \"✂️ 크롭 적용\" 버튼을 클릭하세요.",
+                "선택한 영역이 모든 페이지에 동일한 위치로 적용됩니다.",
+                "예를 들어, 1페이지에서 좌측 상단 영역을 선택하면 모든 페이지의 동일한 위치가 크롭됩니다.",
+                "크롭 작업은 되돌릴 수 없으므로 신중하게 선택하세요."
+            ]
+        },
+        mergePdf: {
+            title: "🔗 PDF 합치기",
+            description: "두 개의 PDF 파일을 하나로 합칠 수 있습니다.",
+            items: [
+                "\"PDF 합치기\" 버튼을 클릭하면 모달 창이 열립니다.",
+                "모달 창에서 첫 번째 PDF 파일과 두 번째 PDF 파일을 각각 선택하세요.",
+                "선택한 파일의 정보(파일명, 크기)가 표시됩니다.",
+                "\"합치기\" 버튼을 클릭하면 두 PDF 파일이 하나로 합쳐집니다.",
+                "합쳐진 PDF는 첫 번째 PDF의 페이지들 다음에 두 번째 PDF의 페이지들이 추가됩니다.",
+                "예를 들어, 첫 번째 PDF가 5페이지, 두 번째 PDF가 3페이지라면 합쳐진 PDF는 총 8페이지가 됩니다.",
+                "합쳐진 PDF는 우측 미리보기 영역에 표시되며, 즉시 편집할 수 있습니다.",
+                "주의: 합치기 작업 후에는 원본 PDF가 대체되므로, 필요시 먼저 다운로드하세요."
+            ]
+        },
+        rotatePages: {
+            title: "🔄 페이지 회전하기",
+            description: "PDF 페이지를 90도, 180도, 270도로 회전시킬 수 있습니다.",
+            items: [
+                "\"페이지 회전하기\" 버튼을 클릭하면 모달 창이 열립니다.",
+                "회전할 페이지를 선택하세요:",
+                "<strong>전체 페이지</strong>: PDF의 모든 페이지를 회전합니다.",
+                "<strong>페이지 범위</strong>: 특정 범위의 페이지를 회전합니다. 예) \"1-5\" (1페이지부터 5페이지까지), \"3-7\" (3페이지부터 7페이지까지)",
+                "<strong>특정 페이지</strong>: 개별 페이지를 선택하여 회전합니다. 예) \"1,3,5\" (1, 3, 5페이지), \"2,4,6,8\" (2, 4, 6, 8페이지)",
+                "페이지 범위나 특정 페이지를 선택한 경우, 입력 필드에 페이지 번호를 입력하세요:",
+                "범위 입력: \"1-3\" (1부터 3까지), \"5-10\" (5부터 10까지)",
+                "개별 페이지 입력: \"1,3,5\" (쉼표로 구분), \"2,4,6,8\"",
+                "혼합 입력: \"1-3,5,7-9\" (범위와 개별 페이지 혼합 가능)",
+                "회전 방향을 선택하세요:",
+                "<strong>90도 (시계방향)</strong>: 페이지를 오른쪽으로 90도 회전합니다.",
+                "<strong>180도</strong>: 페이지를 180도 회전합니다 (뒤집기).",
+                "<strong>270도 (반시계방향)</strong>: 페이지를 왼쪽으로 90도 회전합니다 (또는 오른쪽으로 270도).",
+                "\"적용\" 버튼을 클릭하면 선택한 페이지들이 회전됩니다.",
+                "회전은 누적됩니다. 예를 들어, 90도 회전을 두 번 적용하면 180도 회전됩니다.",
+                "회전된 PDF는 우측 미리보기 영역에 즉시 반영됩니다."
+            ]
+        },
+        deletePage: {
+            title: "🗑️ 페이지 삭제",
+            description: "PDF에서 특정 페이지를 삭제할 수 있습니다.",
+            items: [
+                "좌측 \"페이지 삭제\" 섹션에서 삭제할 페이지 번호를 입력하세요.",
+                "예를 들어, 5페이지를 삭제하려면 \"5\"를 입력하세요.",
+                "\"페이지 삭제\" 버튼을 클릭하면 해당 페이지가 삭제됩니다.",
+                "페이지가 삭제되면 나머지 페이지들의 번호가 자동으로 재정렬됩니다.",
+                "예를 들어, 5페이지를 삭제하면 원래 6페이지가 5페이지가 되고, 7페이지가 6페이지가 됩니다.",
+                "주의: 삭제 작업은 되돌릴 수 없으므로 신중하게 진행하세요.",
+                "여러 페이지를 삭제하려면 한 번에 하나씩 삭제하거나, PDF 분할 기능을 사용하세요."
+            ]
+        },
+        downloadPdf: {
+            title: "💾 PDF 다운로드",
+            description: "편집된 PDF 파일을 컴퓨터에 저장할 수 있습니다.",
+            items: [
+                "모든 편집 작업이 완료된 후 \"PDF 다운로드\" 버튼을 클릭하세요.",
+                "파일이 자동으로 다운로드되며, 파일명은 \"edited_[타임스탬프].pdf\" 형식입니다.",
+                "다운로드된 파일은 브라우저의 기본 다운로드 폴더에 저장됩니다.",
+                "다운로드 전에 모든 편집 내용이 PDF에 반영되어 있는지 확인하세요.",
+                "주의: 다운로드한 파일은 원본과 별개의 파일이므로, 원본 파일은 그대로 유지됩니다."
+            ]
+        },
+        downloadJpg: {
+            title: "🖼️ JPG로 다운로드",
+            description: "PDF의 각 페이지를 고해상도 JPG 이미지 파일로 변환하여 다운로드할 수 있습니다.",
+            items: [
+                "\"JPG로 다운로드\" 버튼을 클릭하면 PDF의 각 페이지가 개별 JPG 파일로 변환됩니다.",
+                "각 페이지는 \"page_1.jpg\", \"page_2.jpg\" 형식으로 다운로드됩니다.",
+                "고해상도로 변환되므로 이미지 품질이 우수합니다.",
+                "변환 과정이 진행되며, 페이지 수가 많은 경우 시간이 걸릴 수 있습니다.",
+                "다운로드된 JPG 파일은 PDF 편집, 이미지 편집 프로그램 등에서 사용할 수 있습니다.",
+                "주의: PDF의 텍스트는 이미지로 변환되므로 텍스트를 직접 편집할 수 없습니다."
+            ]
+        },
+        downloadText: {
+            title: "📝 텍스트로 다운로드",
+            description: "PDF에서 텍스트를 추출하여 TXT 파일로 다운로드할 수 있습니다.",
+            items: [
+                "\"텍스트로 다운로드\" 버튼을 클릭하면 PDF의 모든 텍스트가 추출됩니다.",
+                "추출된 텍스트는 \"pdf_text_[타임스탬프].txt\" 형식의 파일로 다운로드됩니다.",
+                "각 페이지의 텍스트는 \"=== 페이지 1 ===\" 형식으로 구분되어 표시됩니다.",
+                "텍스트가 없는 이미지 PDF인 경우 \"이미지PDF는 OCR을 통해 텍스트를 추출할 수 있습니다.\" 경고 메시지가 표시됩니다.",
+                "이미지 기반 PDF의 경우 텍스트 추출이 불가능하며, OCR(광학 문자 인식) 도구를 사용해야 합니다.",
+                "추출된 텍스트는 메모장, 워드프로세서 등에서 열어 확인하고 편집할 수 있습니다.",
+                "텍스트 형식은 유지되지만, 레이아웃이나 서식은 보존되지 않습니다."
+            ]
+        },
+        reset: {
+            title: "🔄 초기화",
+            description: "모든 편집 내용을 취소하고 처음 상태로 되돌립니다.",
+            items: [
+                "\"초기화\" 버튼을 클릭하면 모든 편집 작업이 취소됩니다.",
+                "PDF 미리보기, 페이지 목록, 모든 편집 내용이 초기화됩니다.",
+                "주의: 초기화 작업은 되돌릴 수 없습니다. 초기화 전에 필요한 내용을 다운로드하세요.",
+                "초기화 후에는 새로운 PDF 파일을 업로드하거나 다른 작업을 시작할 수 있습니다."
+            ]
+        },
+        usefulTips: {
+            title: "💡 유용한 팁",
+            items: [
+                "작업 전에 원본 PDF 파일을 백업하거나 다운로드하는 것을 권장합니다.",
+                "여러 작업을 연속으로 수행할 수 있습니다. 예를 들어, 페이지를 회전한 후 분할하거나, 합친 후 순서를 변경할 수 있습니다.",
+                "페이지 번호는 1부터 시작합니다.",
+                "대용량 PDF 파일의 경우 처리 시간이 걸릴 수 있습니다.",
+                "브라우저를 닫으면 편집 내용이 저장되지 않으므로, 작업 완료 후 반드시 다운로드하세요.",
+                "PDF(Portable Document Format)는 문서를 최종 출력물의 형태로 보존하는 데 중점을 둔 형식입니다. Word나 HTML처럼 유동적인 문서가 아니기 때문에, 텍스트를 \"자유롭게\" 편집하는 것이 복잡하고 정확하지 않아 기능을 추가하지 않았으니 참고해주세요."
+            ]
+        }
+    }
+};
+
+// Help 모달 언어 변경 함수
+function updateHelpModalLanguage(lang) {
+    helpCurrentLang = lang;
+    const t = helpTranslations[lang];
+    if (!t) return;
+    
+    const helpModalBody = document.querySelector('.help-modal-body');
+    if (!helpModalBody) return;
+    
+    // 모든 섹션 업데이트
+    helpModalBody.innerHTML = `
+        <div class="help-section">
+            <h3>${t.fileUpload.title}</h3>
+            <p>${t.fileUpload.description}</p>
+            <ul>
+                ${t.fileUpload.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.reorderPages.title}</h3>
+            <p>${t.reorderPages.description}</p>
+            <ul>
+                ${t.reorderPages.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.createPdfFromImages.title}</h3>
+            <p>${t.createPdfFromImages.description}</p>
+            <ul>
+                ${t.createPdfFromImages.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.splitPdf.title}</h3>
+            <p>${t.splitPdf.description}</p>
+            <ul>
+                ${t.splitPdf.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.cropPdf.title}</h3>
+            <p>${t.cropPdf.description}</p>
+            <ul>
+                ${t.cropPdf.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.mergePdf.title}</h3>
+            <p>${t.mergePdf.description}</p>
+            <ul>
+                ${t.mergePdf.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.rotatePages.title}</h3>
+            <p>${t.rotatePages.description}</p>
+            <ul>
+                ${t.rotatePages.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.deletePage.title}</h3>
+            <p>${t.deletePage.description}</p>
+            <ul>
+                ${t.deletePage.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.downloadPdf.title}</h3>
+            <p>${t.downloadPdf.description}</p>
+            <ul>
+                ${t.downloadPdf.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.downloadJpg.title}</h3>
+            <p>${t.downloadJpg.description}</p>
+            <ul>
+                ${t.downloadJpg.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.downloadText.title}</h3>
+            <p>${t.downloadText.description}</p>
+            <ul>
+                ${t.downloadText.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.reset.title}</h3>
+            <p>${t.reset.description}</p>
+            <ul>
+                ${t.reset.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h3>${t.usefulTips.title}</h3>
+            <ul>
+                ${t.usefulTips.items.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        </div>
+    `;
+    
+    // 제목 업데이트
+    const helpTitle = document.querySelector('#helpModal h2');
+    if (helpTitle) helpTitle.textContent = t.title;
+    
+    // 활성 언어 버튼 표시
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        if (btn.dataset.lang === lang) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+}
+
 // 전역 변수
 let currentPdfDoc = null;
 let currentPdfBytes = null;
@@ -1582,9 +2079,19 @@ async function copyImageFromCanvas(canvas, event) {
         helpBtn.addEventListener('click', () => {
             if (helpModal) {
                 helpModal.style.display = 'flex';
+                // 기본 언어로 설정 (영어)
+                updateHelpModalLanguage(helpCurrentLang || 'en');
             }
         });
     }
+    
+    // 언어 버튼 클릭 이벤트
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const lang = btn.dataset.lang;
+            updateHelpModalLanguage(lang);
+        });
+    });
 
     // 사용법 모달 닫기
     if (closeHelpModal) {
