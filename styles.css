@@ -659,6 +659,23 @@ input[type="text"]:focus {
     color: #333;
 }
 
+/* 사용법 모달 스타일 */
+.help-modal-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.help-modal-header {
+    flex-shrink: 0;
+}
+
+.help-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
 @media (max-width: 1024px) {
     .main-content {
         flex-direction: column;
