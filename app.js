@@ -620,12 +620,19 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('pdfInput 요소를 찾을 수 없습니다.');
     } else {
     pdfInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files || files.length === 0) return;
 
-    if (file.type !== 'application/pdf') {
+    // PDF 파일만 필터링
+    const pdfFiles = files.filter(file => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'));
+    
+    if (pdfFiles.length === 0) {
         alert('Only PDF files can be uploaded.');
         return;
+    }
+
+    if (pdfFiles.length !== files.length) {
+        alert('Some non-PDF files were ignored.');
     }
 
     // 기존 상태 초기화
@@ -634,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pdfPages = [];
     
     // UI 초기화
-    if (pdfPreview) pdfPreview.innerHTML = `<div class="empty-state"><p>📄 Upload a PDF file</p></div>`;
+    if (pdfPreview) pdfPreview.innerHTML = `<div class="empty-state"><p>📄 Loading PDF file(s)...</p></div>`;
     if (pageList) pageList.innerHTML = '';
     if (totalPages) totalPages.textContent = '0';
     if (splitFrom) splitFrom.value = '';
@@ -645,65 +652,141 @@ document.addEventListener('DOMContentLoaded', () => {
     if (downloadTextBtn) downloadTextBtn.disabled = true;
     if (applyPageOrderBtn) applyPageOrderBtn.style.display = 'none';
 
-    if (fileInfo) {
-        fileInfo.innerHTML = `
-            <strong>File Name:</strong> ${file.name}<br>
-            <strong>Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB
-        `;
-    }
-
-    const arrayBuffer = await file.arrayBuffer();
-    const tempBytes = new Uint8Array(arrayBuffer);
-    
-    // 완전히 독립적인 복사본 생성 (ArrayBuffer detached 방지)
-    savePdfBytes(tempBytes);
-    
-    // currentPdfBytes를 백업 (절대 변경되지 않도록)
-    const originalPdfBytes = new Uint8Array(currentPdfBytes);
-    
-    console.log('PDF 업로드 완료, 크기:', currentPdfBytes.length);
-    console.log('originalPdfBytes 백업 완료, 크기:', originalPdfBytes.length);
-    console.log('currentPdfBytes 타입:', currentPdfBytes.constructor.name);
-
     try {
-        // originalPdfBytes를 사용하여 pdf.js에 전달 (currentPdfBytes는 절대 건드리지 않음)
-        const pdfBytesForPreview = new Uint8Array(originalPdfBytes);
-        
-        // 독립적인 ArrayBuffer 생성하여 pdf.js에 전달
-        const pdfArrayBuffer = new ArrayBuffer(pdfBytesForPreview.length);
-        const pdfView = new Uint8Array(pdfArrayBuffer);
-        pdfView.set(pdfBytesForPreview);
-        
-        currentPdfDoc = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
-        pdfPages = [];
-        
-        const numPages = currentPdfDoc.numPages;
-        totalPages.textContent = numPages;
+        // 여러 파일이 선택된 경우 자동 병합
+        if (pdfFiles.length > 1) {
+            if (typeof PDFLib === 'undefined') {
+                throw new Error('PDFLib library is not loaded.');
+            }
 
-        // 페이지 목록 생성
-        updatePageList(numPages);
+            const { PDFDocument } = PDFLib;
+            const mergedPdf = await PDFDocument.create();
 
-        // PDF 미리보기 렌더링
-        await renderPdfPreview();
+            // 모든 PDF 파일 읽기 및 병합
+            for (let i = 0; i < pdfFiles.length; i++) {
+                const file = pdfFiles[i];
+                const arrayBuffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+                
+                // PDF 문서 로드
+                const pdfDoc = await PDFDocument.load(bytes);
+                
+                // 모든 페이지 복사
+                const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                pages.forEach((page) => mergedPdf.addPage(page));
+            }
 
-        if (downloadBtn) downloadBtn.disabled = false;
-        if (downloadJpgBtn) downloadJpgBtn.disabled = false;
-        if (downloadTextBtn) downloadTextBtn.disabled = false;
-        
-        // currentPdfBytes가 변경되지 않았는지 확인
-        console.log('PDF 로드 완료, 페이지 수:', numPages);
-        console.log('업로드 후 currentPdfBytes 최종 확인:', currentPdfBytes.length);
-        console.log('originalPdfBytes 크기 확인:', originalPdfBytes.length);
-        
-        // 만약 currentPdfBytes가 손상되었다면 복구
-        if (currentPdfBytes.length === 0 && originalPdfBytes.length > 0) {
-            console.warn('currentPdfBytes가 손상되었습니다. 복구 중...');
-            savePdfBytes(originalPdfBytes);
-            console.log('복구 완료, currentPdfBytes 크기:', currentPdfBytes.length);
+            // 합쳐진 PDF 저장
+            const base64String = await mergedPdf.saveAsBase64();
+            const binaryString = atob(base64String);
+            const mergedBytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                mergedBytes[i] = binaryString.charCodeAt(i);
+            }
+
+            // currentPdfBytes에 저장
+            savePdfBytes(mergedBytes);
+
+            // 파일 정보 업데이트
+            if (fileInfo) {
+                const fileNames = pdfFiles.map(f => f.name).join(' + ');
+                const totalSize = pdfFiles.reduce((sum, f) => sum + f.size, 0);
+                fileInfo.innerHTML = `
+                    <strong>File Name:</strong> ${fileNames}<br>
+                    <strong>Size:</strong> ${(totalSize / 1024 / 1024).toFixed(2)} MB<br>
+                    <strong>Files Merged:</strong> ${pdfFiles.length} files
+                `;
+            }
+
+            // pdf.js에 전달하여 미리보기
+            const pdfArrayBuffer = new ArrayBuffer(mergedBytes.length);
+            const pdfView = new Uint8Array(pdfArrayBuffer);
+            pdfView.set(mergedBytes);
+
+            currentPdfDoc = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
+            pdfPages = [];
+
+            const numPages = currentPdfDoc.numPages;
+            if (totalPages) totalPages.textContent = numPages;
+
+            // 페이지 목록 생성
+            updatePageList(numPages);
+
+            // PDF 미리보기 렌더링
+            await renderPdfPreview();
+
+            if (downloadBtn) downloadBtn.disabled = false;
+            if (downloadJpgBtn) downloadJpgBtn.disabled = false;
+            if (downloadTextBtn) downloadTextBtn.disabled = false;
+
+            console.log(`PDF merge completed! ${pdfFiles.length} files merged into ${numPages} pages.`);
+        } else {
+            // 단일 파일 처리
+            const file = pdfFiles[0];
+
+            if (fileInfo) {
+                fileInfo.innerHTML = `
+                    <strong>File Name:</strong> ${file.name}<br>
+                    <strong>Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB
+                `;
+            }
+
+            const arrayBuffer = await file.arrayBuffer();
+            const tempBytes = new Uint8Array(arrayBuffer);
+            
+            // 완전히 독립적인 복사본 생성 (ArrayBuffer detached 방지)
+            savePdfBytes(tempBytes);
+            
+            // currentPdfBytes를 백업 (절대 변경되지 않도록)
+            const originalPdfBytes = new Uint8Array(currentPdfBytes);
+            
+            console.log('PDF 업로드 완료, 크기:', currentPdfBytes.length);
+            console.log('originalPdfBytes 백업 완료, 크기:', originalPdfBytes.length);
+            console.log('currentPdfBytes 타입:', currentPdfBytes.constructor.name);
+
+            // originalPdfBytes를 사용하여 pdf.js에 전달 (currentPdfBytes는 절대 건드리지 않음)
+            const pdfBytesForPreview = new Uint8Array(originalPdfBytes);
+            
+            // 독립적인 ArrayBuffer 생성하여 pdf.js에 전달
+            const pdfArrayBuffer = new ArrayBuffer(pdfBytesForPreview.length);
+            const pdfView = new Uint8Array(pdfArrayBuffer);
+            pdfView.set(pdfBytesForPreview);
+            
+            currentPdfDoc = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
+            pdfPages = [];
+            
+            const numPages = currentPdfDoc.numPages;
+            if (totalPages) totalPages.textContent = numPages;
+
+            // 페이지 목록 생성
+            updatePageList(numPages);
+
+            // PDF 미리보기 렌더링
+            await renderPdfPreview();
+
+            if (downloadBtn) downloadBtn.disabled = false;
+            if (downloadJpgBtn) downloadJpgBtn.disabled = false;
+            if (downloadTextBtn) downloadTextBtn.disabled = false;
+            
+            // currentPdfBytes가 변경되지 않았는지 확인
+            console.log('PDF 로드 완료, 페이지 수:', numPages);
+            console.log('업로드 후 currentPdfBytes 최종 확인:', currentPdfBytes.length);
+            console.log('originalPdfBytes 크기 확인:', originalPdfBytes.length);
+            
+            // 만약 currentPdfBytes가 손상되었다면 복구
+            if (currentPdfBytes.length === 0 && originalPdfBytes.length > 0) {
+                console.warn('currentPdfBytes가 손상되었습니다. 복구 중...');
+                savePdfBytes(originalPdfBytes);
+                console.log('복구 완료, currentPdfBytes 크기:', currentPdfBytes.length);
+            }
         }
     } catch (error) {
         console.error('PDF 로드 오류:', error);
-        alert('An error occurred while loading the PDF file.');
+        alert(`An error occurred while loading the PDF file(s): ${error.message || error}`);
+        
+        // 에러 발생 시 UI 초기화
+        if (pdfPreview) pdfPreview.innerHTML = `<div class="empty-state"><p>📄 Upload a PDF file</p></div>`;
+        if (fileInfo) fileInfo.innerHTML = '';
     }
     });
 }
