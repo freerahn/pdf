@@ -304,14 +304,12 @@
             <div class="modal-body">
                 <div class="merge-controls">
                     <div class="input-group">
-                        <label for="mergeFile1">First PDF file:</label>
-                        <input type="file" id="mergeFile1" accept=".pdf" />
-                        <div id="mergeFile1Info" class="file-info-small"></div>
-                    </div>
-                    <div class="input-group">
-                        <label for="mergeFile2">Second PDF file:</label>
-                        <input type="file" id="mergeFile2" accept=".pdf" />
-                        <div id="mergeFile2Info" class="file-info-small"></div>
+                        <label>Select PDF files to merge:</label>
+                        <input type="file" id="mergeFilesInput" accept=".pdf" multiple style="display: none;" />
+                        <button id="selectMergeFilesBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;">
+                            📁 Select Multiple PDF Files
+                        </button>
+                        <div id="mergeFilesList" class="merge-files-list"></div>
                     </div>
                     <div class="merge-buttons">
                         <button id="executeMergeBtn" class="btn btn-success">Merge</button>

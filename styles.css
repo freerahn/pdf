@@ -509,6 +509,78 @@ input[type="text"]:focus {
     flex: 1;
 }
 
+.merge-files-list {
+    margin-top: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.merge-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: white;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+}
+
+.merge-file-item:last-child {
+    margin-bottom: 0;
+}
+
+.merge-file-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.merge-file-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9em;
+}
+
+.merge-file-size {
+    font-size: 0.85em;
+    color: #666;
+}
+
+.merge-file-remove {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: background-color 0.3s;
+}
+
+.merge-file-remove:hover {
+    background: #c82333;
+}
+
+.merge-file-order {
+    display: inline-block;
+    min-width: 25px;
+    height: 25px;
+    line-height: 25px;
+    text-align: center;
+    background: #667eea;
+    color: white;
+    border-radius: 50%;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-right: 10px;
+}
+
 /* 이미지로 PDF 만들기 */
 .image-preview-list {
     display: grid;

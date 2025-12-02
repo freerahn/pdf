@@ -81,14 +81,15 @@ const helpTranslations = {
         },
         mergePdf: {
             title: "🔗 Merge PDF",
-            description: "You can merge two PDF files into one.",
+            description: "You can merge multiple PDF files into one.",
             items: [
                 "Click the \"Merge PDF\" button to open a modal window.",
-                "In the modal, select the first PDF file and the second PDF file.",
-                "The selected file information (file name, size) will be displayed.",
-                "Click the \"Merge\" button to merge the two PDF files into one.",
-                "The merged PDF will have the pages from the first PDF followed by the pages from the second PDF.",
-                "For example, if the first PDF has 5 pages and the second PDF has 3 pages, the merged PDF will have 8 pages total.",
+                "In the modal, click \"Select Multiple PDF Files\" to choose PDF files. (Multiple selection available)",
+                "You can select 2 or more PDF files at once.",
+                "The selected files will be displayed in a list with their order. You can remove files by clicking the \"Remove\" button.",
+                "Click the \"Merge\" button to merge all selected PDF files into one.",
+                "The merged PDF will have the pages from all PDFs in the order they were selected.",
+                "For example, if you merge 3 PDFs with 5, 3, and 4 pages respectively, the merged PDF will have 12 pages total.",
                 "The merged PDF will be displayed in the preview area on the right and can be edited immediately.",
                 "Note: After merging, the original PDFs will be replaced, so download them first if needed."
             ]
@@ -262,15 +263,16 @@ const helpTranslations = {
         },
         mergePdf: {
             title: "🔗 PDF 합치기",
-            description: "두 개의 PDF 파일을 하나로 합칠 수 있습니다.",
+            description: "여러 개의 PDF 파일을 하나로 병합할 수 있습니다.",
             items: [
                 "\"PDF 합치기\" 버튼을 클릭하면 모달 창이 열립니다.",
-                "모달 창에서 첫 번째 PDF 파일과 두 번째 PDF 파일을 각각 선택하세요.",
-                "선택한 파일의 정보(파일명, 크기)가 표시됩니다.",
-                "\"합치기\" 버튼을 클릭하면 두 PDF 파일이 하나로 합쳐집니다.",
-                "합쳐진 PDF는 첫 번째 PDF의 페이지들 다음에 두 번째 PDF의 페이지들이 추가됩니다.",
-                "예를 들어, 첫 번째 PDF가 5페이지, 두 번째 PDF가 3페이지라면 합쳐진 PDF는 총 8페이지가 됩니다.",
-                "합쳐진 PDF는 우측 미리보기 영역에 표시되며, 즉시 편집할 수 있습니다.",
+                "모달에서 \"Select Multiple PDF Files\" 버튼을 클릭하여 PDF 파일을 선택합니다. (다중 선택 가능)",
+                "2개 이상의 PDF 파일을 한 번에 선택할 수 있습니다.",
+                "선택된 파일들은 순서와 함께 리스트로 표시됩니다. \"Remove\" 버튼을 클릭하여 파일을 제거할 수 있습니다.",
+                "\"Merge\" 버튼을 클릭하여 선택한 모든 PDF 파일을 하나로 병합합니다.",
+                "병합된 PDF는 선택한 순서대로 모든 PDF의 페이지를 포함합니다.",
+                "예를 들어, 각각 5페이지, 3페이지, 4페이지를 가진 3개의 PDF를 병합하면 총 12페이지의 PDF가 생성됩니다.",
+                "병합된 PDF는 우측 미리보기 영역에 표시되며 즉시 편집할 수 있습니다.",
                 "주의: 합치기 작업 후에는 원본 PDF가 대체되므로, 필요시 먼저 다운로드하세요."
             ]
         },
@@ -542,12 +544,12 @@ let cancelImageToPdfBtn;
 let mergeBtn;
 let mergeModal;
 let closeMergeModal;
-let mergeFile1;
-let mergeFile2;
-let mergeFile1Info;
-let mergeFile2Info;
+let mergeFilesInput;
+let selectMergeFilesBtn;
+let mergeFilesList;
 let executeMergeBtn;
 let cancelMergeBtn;
+let selectedMergeFiles = []; // 선택된 파일들을 저장하는 배열
 let resetBtn;
 let helpBtn;
 let helpModal;
@@ -602,10 +604,9 @@ document.addEventListener('DOMContentLoaded', () => {
     mergeBtn = document.getElementById('mergeBtn');
     mergeModal = document.getElementById('mergeModal');
     closeMergeModal = document.getElementById('closeMergeModal');
-    mergeFile1 = document.getElementById('mergeFile1');
-    mergeFile2 = document.getElementById('mergeFile2');
-    mergeFile1Info = document.getElementById('mergeFile1Info');
-    mergeFile2Info = document.getElementById('mergeFile2Info');
+    mergeFilesInput = document.getElementById('mergeFilesInput');
+    selectMergeFilesBtn = document.getElementById('selectMergeFilesBtn');
+    mergeFilesList = document.getElementById('mergeFilesList');
     executeMergeBtn = document.getElementById('executeMergeBtn');
     cancelMergeBtn = document.getElementById('cancelMergeBtn');
     resetBtn = document.getElementById('resetBtn');
@@ -2360,15 +2361,47 @@ async function copyImageFromCanvas(canvas, event) {
         });
     }
 
+    // 파일 리스트 표시 함수
+    function updateMergeFilesList() {
+        if (!mergeFilesList) return;
+        
+        if (selectedMergeFiles.length === 0) {
+            mergeFilesList.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No files selected</p>';
+            return;
+        }
+        
+        mergeFilesList.innerHTML = selectedMergeFiles.map((file, index) => {
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            return `
+                <div class="merge-file-item" data-index="${index}">
+                    <span class="merge-file-order">${index + 1}</span>
+                    <div class="merge-file-info">
+                        <span class="merge-file-name">${file.name}</span>
+                        <span class="merge-file-size">${fileSize} MB</span>
+                    </div>
+                    <button class="merge-file-remove" data-index="${index}">Remove</button>
+                </div>
+            `;
+        }).join('');
+        
+        // 제거 버튼 이벤트 리스너 추가
+        mergeFilesList.querySelectorAll('.merge-file-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                selectedMergeFiles.splice(index, 1);
+                updateMergeFilesList();
+            });
+        });
+    }
+
     // PDF 합치기 모달 열기
     if (mergeBtn) {
         mergeBtn.addEventListener('click', () => {
             if (mergeModal) mergeModal.style.display = 'flex';
             // 파일 입력 초기화
-            if (mergeFile1) mergeFile1.value = '';
-            if (mergeFile2) mergeFile2.value = '';
-            if (mergeFile1Info) mergeFile1Info.textContent = '';
-            if (mergeFile2Info) mergeFile2Info.textContent = '';
+            selectedMergeFiles = [];
+            if (mergeFilesInput) mergeFilesInput.value = '';
+            updateMergeFilesList();
         });
     }
 
@@ -2394,31 +2427,36 @@ async function copyImageFromCanvas(canvas, event) {
         });
     }
 
-    // 파일 선택 시 정보 표시
-    if (mergeFile1) {
-        mergeFile1.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                if (mergeFile1Info) {
-                    mergeFile1Info.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-                    mergeFile1Info.style.color = '#28a745';
-                }
-            } else {
-                if (mergeFile1Info) mergeFile1Info.textContent = '';
-            }
+    // 여러 파일 선택 버튼 클릭
+    if (selectMergeFilesBtn) {
+        selectMergeFilesBtn.addEventListener('click', () => {
+            if (mergeFilesInput) mergeFilesInput.click();
         });
     }
 
-    if (mergeFile2) {
-        mergeFile2.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                if (mergeFile2Info) {
-                    mergeFile2Info.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-                    mergeFile2Info.style.color = '#28a745';
+    // 파일 선택 시 정보 표시
+    if (mergeFilesInput) {
+        mergeFilesInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                // PDF 파일만 필터링
+                const pdfFiles = files.filter(file => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'));
+                
+                if (pdfFiles.length !== files.length) {
+                    alert('Only PDF files can be selected. Non-PDF files have been ignored.');
                 }
-            } else {
-                if (mergeFile2Info) mergeFile2Info.textContent = '';
+                
+                // 중복 제거 (같은 이름의 파일이 이미 선택되어 있으면 제외)
+                pdfFiles.forEach(file => {
+                    const isDuplicate = selectedMergeFiles.some(existingFile => 
+                        existingFile.name === file.name && existingFile.size === file.size
+                    );
+                    if (!isDuplicate) {
+                        selectedMergeFiles.push(file);
+                    }
+                });
+                
+                updateMergeFilesList();
             }
         });
     }
@@ -2426,21 +2464,8 @@ async function copyImageFromCanvas(canvas, event) {
     // PDF 합치기 실행
     if (executeMergeBtn) {
         executeMergeBtn.addEventListener('click', async () => {
-            if (!mergeFile1 || !mergeFile2) {
-                alert('PDF file input field not found.');
-                return;
-            }
-            
-            const file1 = mergeFile1.files[0];
-            const file2 = mergeFile2.files[0];
-
-            if (!file1 || !file2) {
-                alert('Please select both PDF files.');
-                return;
-            }
-
-            if (file1.type !== 'application/pdf' || file2.type !== 'application/pdf') {
-                alert('Only PDF files can be selected.');
+            if (selectedMergeFiles.length < 2) {
+                alert('Please select at least 2 PDF files to merge.');
                 return;
             }
 
@@ -2450,52 +2475,47 @@ async function copyImageFromCanvas(canvas, event) {
                     executeMergeBtn.textContent = 'Merging...';
                 }
 
-        // 두 PDF 파일 읽기
-        const arrayBuffer1 = await file1.arrayBuffer();
-        const arrayBuffer2 = await file2.arrayBuffer();
-        
-        const bytes1 = new Uint8Array(arrayBuffer1);
-        const bytes2 = new Uint8Array(arrayBuffer2);
+                if (typeof PDFLib === 'undefined') {
+                    throw new Error('PDFLib library is not loaded.');
+                }
 
-        if (typeof PDFLib === 'undefined') {
-            throw new Error('PDFLib 라이브러리가 로드되지 않았습니다.');
-        }
+                const { PDFDocument } = PDFLib;
 
-        const { PDFDocument } = PDFLib;
+                // 새 PDF 문서 생성
+                const mergedPdf = await PDFDocument.create();
 
-        // 두 PDF 문서 로드
-        const pdfDoc1 = await PDFDocument.load(bytes1);
-        const pdfDoc2 = await PDFDocument.load(bytes2);
+                // 모든 PDF 파일 읽기 및 병합
+                for (let i = 0; i < selectedMergeFiles.length; i++) {
+                    const file = selectedMergeFiles[i];
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    
+                    // PDF 문서 로드
+                    const pdfDoc = await PDFDocument.load(bytes);
+                    
+                    // 모든 페이지 복사
+                    const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                    pages.forEach((page) => mergedPdf.addPage(page));
+                }
 
-        // 새 PDF 문서 생성
-        const mergedPdf = await PDFDocument.create();
+                // 합쳐진 PDF 저장
+                const base64String = await mergedPdf.saveAsBase64();
+                const binaryString = atob(base64String);
+                const mergedBytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    mergedBytes[i] = binaryString.charCodeAt(i);
+                }
 
-        // 첫 번째 PDF의 모든 페이지 복사
-        const pages1 = await mergedPdf.copyPages(pdfDoc1, pdfDoc1.getPageIndices());
-        pages1.forEach((page) => mergedPdf.addPage(page));
+                // currentPdfBytes에 저장
+                savePdfBytes(mergedBytes);
 
-        // 두 번째 PDF의 모든 페이지 복사
-        const pages2 = await mergedPdf.copyPages(pdfDoc2, pdfDoc2.getPageIndices());
-        pages2.forEach((page) => mergedPdf.addPage(page));
+                // pdf.js에 전달하여 미리보기
+                const pdfArrayBuffer = new ArrayBuffer(mergedBytes.length);
+                const pdfView = new Uint8Array(pdfArrayBuffer);
+                pdfView.set(mergedBytes);
 
-        // 합쳐진 PDF 저장
-        const base64String = await mergedPdf.saveAsBase64();
-        const binaryString = atob(base64String);
-        const mergedBytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            mergedBytes[i] = binaryString.charCodeAt(i);
-        }
-
-        // currentPdfBytes에 저장
-        savePdfBytes(mergedBytes);
-
-        // pdf.js에 전달하여 미리보기
-        const pdfArrayBuffer = new ArrayBuffer(mergedBytes.length);
-        const pdfView = new Uint8Array(pdfArrayBuffer);
-        pdfView.set(mergedBytes);
-
-        currentPdfDoc = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
-        pdfPages = [];
+                currentPdfDoc = await pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
+                pdfPages = [];
 
                 const numPages = currentPdfDoc.numPages;
                 if (totalPages) totalPages.textContent = numPages;
@@ -2512,8 +2532,9 @@ async function copyImageFromCanvas(canvas, event) {
 
                 // 파일 정보 업데이트
                 if (fileInfo) {
+                    const fileNames = selectedMergeFiles.map(f => f.name).join(' + ');
                     fileInfo.innerHTML = `
-                        <strong>File Name:</strong> ${file1.name} + ${file2.name}<br>
+                        <strong>File Name:</strong> ${fileNames}<br>
                         <strong>Total Pages:</strong> ${numPages} pages
                     `;
                 }
@@ -2521,10 +2542,10 @@ async function copyImageFromCanvas(canvas, event) {
                 // 모달 닫기
                 if (mergeModal) mergeModal.style.display = 'none';
                 
-                alert(`PDF merge completed! Total ${numPages} pages created.`);
+                alert(`PDF merge completed! ${selectedMergeFiles.length} files merged into ${numPages} pages.`);
 
             } catch (error) {
-                console.error('PDF 합치기 오류:', error);
+                console.error('PDF merge error:', error);
                 alert(`An error occurred while merging PDF: ${error.message || error}`);
             } finally {
                 if (executeMergeBtn) {
